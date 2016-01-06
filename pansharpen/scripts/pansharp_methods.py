@@ -16,4 +16,5 @@ def Brovey(rgb, pan, weight, pan_dtype):
     with np.errstate(invalid='ignore', divide='ignore'):
         ratio = calculateRatio(rgb, pan, weight)
     with np.errstate(invalid='ignore'):
-        return  (ratio * rgb).astype(pan_dtype), ratio
+        sharp = np.clip(ratio * rgb, 0, np.iinfo(pan_dtype).max)
+        return  sharp.astype(pan_dtype), ratio

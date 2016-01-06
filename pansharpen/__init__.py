@@ -1,16 +1,19 @@
 #!/usr/bin/env python
 
+import click
 import numpy as np
 import rasterio as rio
 import riomucho as rios
 from pansharpen.scripts.pansharp_methods import Brovey
 from rasterio.warp import reproject, RESAMPLING
 from rasterio import Affine
-import click
 
-'''
-If customized windows are used
-''' 
+
+class NoRetry(click.ClickException):
+    """Do not retry"""
+    exit_code = 3
+
+
 
 def adjust_block_size(width, height, blocksize):
     if width % blocksize == 1:
@@ -44,8 +47,13 @@ def make_affine(fr_shape, to_shape):
 def load_half_window(window):
     return tuple((w[0] / 2, w[1] / 2) for w in window)
 
-def upsample(rgb, panshape, src_aff, src_crs, to_aff, to_crs):
+def check_crs(inputs):
+    for i in range(1, len(inputs)):
+        if inputs[i-1]['crs'] != inputs[i]['crs']:
+            raise NoRetry('CRS of inputs must be the same: received %s and %s' % (inputs[i-1]['crs'], inputs[i]['crs'] ))
 
+
+def upsample(rgb, panshape, src_aff, src_crs, to_aff, to_crs):
     up_rgb = np.empty((rgb.shape[0], panshape[0], panshape[1]), dtype=rgb.dtype)
 
     reproject(
@@ -58,6 +66,13 @@ def upsample(rgb, panshape, src_aff, src_crs, to_aff, to_crs):
 
     return up_rgb
 
+def simple_mask(data, ndv):
+    '''Exact nodata masking'''
+    depth, rows, cols = data.shape
+    nd = np.iinfo(data.dtype).max
+    alpha = np.invert(np.all(np.dstack(data) == ndv, axis=2)).astype(data.dtype) * nd
+
+    return alpha
 
 def run_pansharpen(open_files, window, ij, g_args):
     """
@@ -70,13 +85,13 @@ def run_pansharpen(open_files, window, ij, g_args):
     rgb = rios.utils.array_stack(
         [src.read(window=half_window).astype(np.float32) 
         for src in open_files[1:]])
-    
+
     # Create a mask of pixels where any channel is 0 (nodata):
     color_mask = np.minimum(
         rgb[0],
         np.minimum(rgb[1], rgb[2])
     ) * 2 ** 16
-    
+
     # Apply the mask:
     rgb = np.array([
         np.minimum(band, color_mask) for band in rgb
@@ -93,9 +108,11 @@ def run_pansharpen(open_files, window, ij, g_args):
     pan_sharpened, ratio = Brovey(rgb, pan, g_args["weight"], pan_dtype)
 
     ## convert to 8bit value range in place
-    pan_sharpened *= (np.iinfo(np.uint8).max / float(np.iinfo(np.uint16).max))
+    pan_sharpened /= (np.iinfo(np.uint16).max / np.iinfo(np.uint8).max)
 
-    return pan_sharpened.astype(np.uint8)
+    pan_sharpened = np.concatenate([pan_sharpened.astype(np.uint8), simple_mask(pan_sharpened.astype(np.uint8), (0, 0, 0)).reshape(1, pan_sharpened.shape[1], pan_sharpened.shape[2])])
+
+    return pan_sharpened
 
 
 def pansharpen(src_path, dst_path, weight, verbosity, processes, customwindow):
@@ -112,17 +129,27 @@ def pansharpen(src_path, dst_path, weight, verbosity, processes, customwindow):
             windows = [(window, ij) for ij, window in pan_src.block_windows()]
 
         kwargs = pan_src.meta
+
+        if kwargs['count'] > 1:
+            raise NoRetry("Pan band must be 1 band - %s is %s" % (src_path[0], kwargs['count']))
+
         kwargs.update(transform=pan_src.affine)
         kwargs.update(compress='DEFLATE')
         kwargs.update(blockxsize=512)
         kwargs.update(blockysize=512)
         kwargs.update(dtype=np.uint8)
         kwargs.update(tiled=True)
-        kwargs.update(count=3)
+        kwargs.update(count=4)
         kwargs.update(photometric='rgb')
+
 
     with rio.open(src_path[1]) as r_src:
         r_meta = r_src.meta
+
+    if kwargs['width'] <= r_meta['width'] or kwargs['height'] <= r_meta['height']:
+        raise NoRetry("Pan band %s is the same size (%s, %s) or smaller than RGB bands (%s, %s)" % (src_path[0], kwargs['height'], kwargs['width'], r_meta['height'], r_meta['width']))
+
+    check_crs([r_meta, kwargs])
 
     g_args = {
         "verb": verbosity,
