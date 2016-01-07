@@ -83,16 +83,18 @@ def run_pansharpen(open_files, pan_window, ij, g_args):
     pan_dtype = open_files[0].meta['dtype']
 
     # Get the rgb window that covers the pan window
+    padding = 2
     pan_bounds = open_files[0].window_bounds(pan_window)
-    rgb_window = open_files[1].window(*pan_bounds)
+    rgb_base_window = open_files[1].window(*pan_bounds)
+    rgb_window = pad_window(rgb_base_window, padding)
 
     # Determine affines for those windows
     pan_affine = open_files[0].window_transform(pan_window)
     rgb_affine = open_files[1].window_transform(rgb_window)
 
     rgb = rios.utils.array_stack(
-        [src.read(window=rgb_window).astype(np.float32)
-        for src in open_files[1:]])
+        [src.read(window=rgb_window, boundless=True).astype(np.float32)
+         for src in open_files[1:]])
 
     # Create a mask of pixels where any channel is 0 (nodata):
     color_mask = np.minimum(
@@ -113,17 +115,19 @@ def run_pansharpen(open_files, pan_window, ij, g_args):
     # Main Pansharpening Processing
     pan_sharpened, ratio = Brovey(rgb, pan, g_args["weight"], pan_dtype)
 
-    ## convert to 8bit value range in place
+    # convert to 8bit value range in place
     pan_sharpened /= (np.iinfo(np.uint16).max / np.iinfo(np.uint8).max)
 
     pan_sharpened = np.concatenate([pan_sharpened.astype(np.uint8), simple_mask(pan_sharpened.astype(np.uint8), (0, 0, 0)).reshape(1, pan_sharpened.shape[1], pan_sharpened.shape[2])])
 
     return pan_sharpened
 
+
 def pad_window(wnd, pad):
     return (
         (wnd[0][0] - pad, wnd[0][1] + pad),
         (wnd[1][0] - pad, wnd[1][1] + pad))
+
 
 def pansharpen(src_paths, dst_path, weight, verbosity, processes, customwindow):
     """
