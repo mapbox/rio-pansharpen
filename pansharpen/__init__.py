@@ -5,6 +5,7 @@ import numpy as np
 import rasterio as rio
 import riomucho as rios
 from pansharpen.scripts.pansharp_methods import Brovey
+import rasterio
 from rasterio.warp import reproject, RESAMPLING
 from rasterio import Affine
 
@@ -74,16 +75,23 @@ def simple_mask(data, ndv):
 
     return alpha
 
-def run_pansharpen(open_files, window, ij, g_args):
+def run_pansharpen(open_files, pan_window, ij, g_args):
     """
     Reading input files and performing pansharpening on each window
     """
-    pan = open_files[0].read(1, window=window).astype(np.float32)
+    pan = open_files[0].read(1, window=pan_window).astype(np.float32)
     pan_dtype = open_files[0].meta['dtype']
 
-    half_window = load_half_window(window)
+    # Get the rgb window that covers the pan window
+    pan_bounds = open_files[0].window_bounds(pan_window)
+    rgb_window = open_files[1].window(*pan_bounds)
+
+    # Determine affines for those windows
+    pan_affine = open_files[0].window_transform(pan_window)
+    rgb_affine = open_files[1].window_transform(rgb_window)
+
     rgb = rios.utils.array_stack(
-        [src.read(window=half_window).astype(np.float32) 
+        [src.read(window=rgb_window).astype(np.float32)
         for src in open_files[1:]])
 
     # Create a mask of pixels where any channel is 0 (nodata):
@@ -100,9 +108,7 @@ def run_pansharpen(open_files, window, ij, g_args):
     if g_args["verb"]:
         click.echo('pan shape: %s, rgb shape %s' % (pan.shape, rgb[0].shape))
 
-    fr_window_affine, to_window_affine = make_affine(pan.shape, rgb[0].shape)
-
-    rgb = upsample(rgb, pan.shape, to_window_affine, g_args["r_crs"], fr_window_affine, g_args['dst_crs'])
+    rgb = upsample(rgb, pan.shape, rgb_affine, g_args["r_crs"], pan_affine, g_args['dst_crs'])
 
     # Main Pansharpening Processing
     pan_sharpened, ratio = Brovey(rgb, pan, g_args["weight"], pan_dtype)
@@ -114,14 +120,18 @@ def run_pansharpen(open_files, window, ij, g_args):
 
     return pan_sharpened
 
+def pad_window(wnd, pad):
+    return (
+        (wnd[0][0] - pad, wnd[0][1] + pad),
+        (wnd[1][0] - pad, wnd[1][1] + pad))
 
-def pansharpen(src_path, dst_path, weight, verbosity, processes, customwindow):
+def pansharpen(src_paths, dst_path, weight, verbosity, processes, customwindow):
     """
     Pansharpening a landsat scene --
     Opening files, reading input meta data and writing the result
     of pansharpening into each window respentively.
     """
-    with rio.open(src_path[0]) as pan_src:
+    with rio.open(src_paths[0]) as pan_src:
         if customwindow:
             blocksize = adjust_block_size(pan_src.meta['width'], pan_src.meta['height'], int(customwindow))
             windows = [(window, (0,0)) for window in make_windows(pan_src.meta['width'], pan_src.meta['height'], blocksize)]
@@ -131,7 +141,7 @@ def pansharpen(src_path, dst_path, weight, verbosity, processes, customwindow):
         kwargs = pan_src.meta
 
         if kwargs['count'] > 1:
-            raise NoRetry("Pan band must be 1 band - %s is %s" % (src_path[0], kwargs['count']))
+            raise NoRetry("Pan band must be 1 band - %s is %s" % (src_paths[0], kwargs['count']))
 
         kwargs.update(transform=pan_src.affine)
         kwargs.update(compress='DEFLATE')
@@ -142,12 +152,11 @@ def pansharpen(src_path, dst_path, weight, verbosity, processes, customwindow):
         kwargs.update(count=4)
         kwargs.update(photometric='rgb')
 
-
-    with rio.open(src_path[1]) as r_src:
+    with rio.open(src_paths[1]) as r_src:
         r_meta = r_src.meta
 
     if kwargs['width'] <= r_meta['width'] or kwargs['height'] <= r_meta['height']:
-        raise NoRetry("Pan band %s is the same size (%s, %s) or smaller than RGB bands (%s, %s)" % (src_path[0], kwargs['height'], kwargs['width'], r_meta['height'], r_meta['width']))
+        raise NoRetry("Pan band %s is the same size (%s, %s) or smaller than RGB bands (%s, %s)" % (src_paths[0], kwargs['height'], kwargs['width'], r_meta['height'], r_meta['width']))
 
     check_crs([r_meta, kwargs])
 
@@ -160,7 +169,12 @@ def pansharpen(src_path, dst_path, weight, verbosity, processes, customwindow):
         "r_crs": r_meta['crs']
         }
 
-    with rios.RioMucho(src_path, dst_path, run_pansharpen,
+    # Helpful for debugging `run_pansharpen` with pdb
+    # for window, ij in windows:
+    #     rasters = [rasterio.open(path) for path in src_paths]
+    #     run_pansharpen(rasters, window, ij, g_args)
+
+    with rios.RioMucho(src_paths, dst_path, run_pansharpen,
         windows=windows, global_args=g_args,
         options=kwargs, mode='manual_read') as rm:
         rm.run(10)

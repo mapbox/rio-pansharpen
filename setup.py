@@ -28,6 +28,6 @@ setup(name='pansharpen',
       },
       entry_points="""
       [console_scripts]
-      pansharpen=pansharpen.scripts.cli:cli
+      pansharpen=pansharpen.scripts.pan_cli:cli
       """
       )
