@@ -8,8 +8,8 @@ with codecs_open('README.rst', encoding='utf-8') as f:
 
 
 setup(name='pansharpen',
-      version='0.0.1',
-      description=u"Skeleton of a Python package",
+      version='0.1.0',
+      description=u"Pansharpen",
       long_description=long_description,
       classifiers=[],
       keywords='',
@@ -21,10 +21,12 @@ setup(name='pansharpen',
       include_package_data=True,
       zip_safe=False,
       install_requires=[
-          'click'
+          'click',
+          'rasterio',
+          'rio-mucho',
       ],
       extras_require={
-          'test': ['pytest'],
+          'test': ['pytest', 'hypothesis'],
       },
       entry_points="""
       [console_scripts]
