@@ -2,14 +2,9 @@
 # pylint: disable=E1120
 from __future__ import division
 
-import click
 import numpy as np
 from affine import Affine
-import rasterio
-import riomucho
-from pansharpen.methods import Brovey
 from rasterio.enums import Resampling
-from rasterio.transform import guard_transform
 from rasterio.warp import reproject
 
 
@@ -79,8 +74,6 @@ def simple_mask(data, ndv):
     return alpha
 
 
-
-
 def pad_window(wnd, pad):
     return (
         (wnd[0][0] - pad, wnd[0][1] + pad),
@@ -100,7 +93,3 @@ def calc_windows(pan_src, customwindow):
         windows = [(window, ij) for ij, window in pan_src.block_windows()]
 
     return windows
-
-
-if __name__ == '__main__':
-    pansharpen()
