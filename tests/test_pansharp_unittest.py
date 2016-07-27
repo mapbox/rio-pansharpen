@@ -1,13 +1,10 @@
 import pytest
-import pansharpen
+from pansharpen import utils
 import numpy as np
-import pansharpen.scripts.pansharp_methods as pansharp_methods
+import pansharpen.methods as pansharp_methods
 import rasterio
 from affine import Affine
 
-"""
-Test advance functions
-"""
 
 # Creating random test fixture for advance functions
 @pytest.fixture
@@ -72,7 +69,7 @@ def test_upsample(test_data):
     with rasterio.Env():
 
         pan, rgb, src_aff, src_crs, dst_aff, dst_crs = test_data
-        up_rgb = pansharpen.upsample(rgb, pan.shape, src_aff, 
+        up_rgb = utils.upsample(rgb, pan.shape, src_aff, 
                                     src_crs, dst_aff, dst_crs)
 
         # test upsampled shape

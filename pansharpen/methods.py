@@ -8,9 +8,9 @@ def calculateRatio(rgb, pan, weight):
 
 def Brovey(rgb, pan, weight, pan_dtype):
     """
-    Brovey Method: Each resampled, multispectral pixel is 
-    multiplied by the ratio of the corresponding 
-    panchromatic pixel intensity to the sum of all the 
+    Brovey Method: Each resampled, multispectral pixel is
+    multiplied by the ratio of the corresponding
+    panchromatic pixel intensity to the sum of all the
     multispectral intensities.
     """
     with np.errstate(invalid='ignore', divide='ignore'):
