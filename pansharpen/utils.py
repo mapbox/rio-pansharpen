@@ -39,7 +39,7 @@ def make_affine(fr_shape, to_shape):
     return fr_window_affine, to_window_affine
 
 
-def load_half_window(window):
+def half_window(window):
     return tuple((w[0] / 2, w[1] / 2) for w in window)
 
 

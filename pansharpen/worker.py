@@ -9,7 +9,7 @@ from pansharpen.methods import Brovey
 from rasterio.transform import guard_transform
 
 from . utils import (
-    pad_window, upsample, simple_mask, calc_windows, check_crs)
+    pad_window, upsample, simple_mask, calc_windows, check_crs, half_window)
 
 
 def pansharpen_worker(open_files, pan_window, _, g_args):
@@ -20,10 +20,13 @@ def pansharpen_worker(open_files, pan_window, _, g_args):
     pan_dtype = open_files[0].meta['dtype']
 
     # Get the rgb window that covers the pan window
-    padding = 2
-    pan_bounds = open_files[0].window_bounds(pan_window)
-    rgb_base_window = open_files[1].window(*pan_bounds)
-    rgb_window = pad_window(rgb_base_window, padding)
+    if g_args.get("half_window"):
+        rgb_window = half_window(pan_window)
+    else:
+        padding = 2
+        pan_bounds = open_files[0].window_bounds(pan_window)
+        rgb_base_window = open_files[1].window(*pan_bounds)
+        rgb_window = pad_window(rgb_base_window, padding)
 
     # Determine affines for those windows
     pan_affine = open_files[0].window_transform(pan_window)
@@ -64,7 +67,8 @@ def pansharpen_worker(open_files, pan_window, _, g_args):
     return pan_sharpened
 
 
-def pansharpen(src_paths, dst_path, weight, verbosity, jobs, customwindow):
+def pansharpen(src_paths, dst_path, weight, verbosity,
+               jobs, half_window, customwindow):
     """
     Main entry point called by the command line utility
 
@@ -102,6 +106,7 @@ def pansharpen(src_paths, dst_path, weight, verbosity, jobs, customwindow):
 
     g_args = {
         "verb": verbosity,
+        "half_window": half_window,
         "weight": weight,
         "dst_aff": guard_transform(profile['transform']),
         "dst_crs": profile['crs'],
