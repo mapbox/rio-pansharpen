@@ -6,6 +6,8 @@ from pansharpen.worker import pansharpen
 @click.command('pansharpen')
 @click.argument('src_paths', type=click.Path(exists=True), nargs=-1)
 @click.argument('dst_path', type=click.Path(exists=False), nargs=1)
+@click.option('--dst-dtype', type=click.Choice(['uint16', 'uint8']),
+                default='uint8')
 @click.option('--weight', '-w', default=0.2, help="Weight of blue band [default = 0.2]")
 @click.option('--verbosity', '-v', is_flag=True)
 @click.option('--jobs', '-j', default=1, help="Number of processes [default = 1]")
@@ -14,7 +16,7 @@ from pansharpen.worker import pansharpen
               "default: False")
 @click.option('--customwindow', '-c', default=None,
               help="Specify blocksize for custom windows [default=src_blockswindows]")
-def cli(src_paths, dst_path, weight, verbosity, jobs, half_window, customwindow):
+def cli(src_paths, dst_path, dst_dtype, weight, verbosity, jobs, half_window, customwindow):
     """Pansharpens a landsat scene.
     Input is a panchromatic band, plus 3 color bands
 
@@ -29,7 +31,7 @@ def cli(src_paths, dst_path, weight, verbosity, jobs, half_window, customwindow)
             'custom blocksize must be greater than 150',
             param=customwindow, param_hint='--customwindow')
 
-    return pansharpen(src_paths, dst_path, weight, verbosity,
+    return pansharpen(src_paths, dst_path, dst_dtype, weight, verbosity,
                       jobs, half_window, customwindow)
 
 if __name__ == '__main__':
