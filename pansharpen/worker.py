@@ -54,8 +54,6 @@ def pansharpen_worker(open_files, pan_window, _, g_args):
     # Main Pansharpening Processing
     pan_sharpened, _ = Brovey(rgb, pan, g_args["weight"], pan_dtype)
 
-    print g_args["dst_dtype"]
-
     if g_args["dst_dtype"] == np.__dict__['uint16']:
         scale = 1
     else:

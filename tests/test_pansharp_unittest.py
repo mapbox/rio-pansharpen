@@ -4,6 +4,7 @@ import numpy as np
 import pansharpen.methods as pansharp_methods
 import rasterio
 from affine import Affine
+from pansharpen.worker import pansharpen_worker
 
 
 # Creating random test fixture for advance functions
@@ -24,6 +25,48 @@ def test_data():
 
     return test_data_pan, test_data_rgb, test_data_src_aff,\
             test_data_src_crs, test_data_dst_aff, test_data_dst_crs
+
+
+@pytest.fixture
+def test_pansharp_data():
+    b8_path = 'tests/fixtures/tiny_20_tiffs/LC81070352015122LGN00/'\
+              'LC81070352015122LGN00_B8.tif'
+    b4_path = 'tests/fixtures/tiny_20_tiffs/LC81070352015122LGN00/'\
+              'LC81070352015122LGN00_B4.tif'
+    b3_path = 'tests/fixtures/tiny_20_tiffs/LC81070352015122LGN00/'\
+              'LC81070352015122LGN00_B3.tif'
+    b2_path = 'tests/fixtures/tiny_20_tiffs/LC81070352015122LGN00/'\
+              'LC81070352015122LGN00_B2.tif'
+    band_paths = [b8_path, b4_path, b3_path, b2_path]
+    pan_window = ((1536, 1792), (1280, 1536))
+    g_args = {'half_window': False,
+              'dst_aff': Affine(75.00483870967741, 0.0, 300892.5,
+                                0.0, -75.00475285171103, 4107007.5),
+              'verb': False, 'weight': 0.2,
+              'dst_crs': {'init': u'epsg:32654'},
+              'r_crs': {'init': u'epsg:32654'},
+              'dst_dtype': np.__dict__['uint16'],
+              'r_aff': Affine(150.0193548387097, 0.0, 300885.0,
+                              0.0, -150.0190114068441, 4107015.0)}
+
+    return [rasterio.open(f) for f in band_paths], pan_window, (6, 5) , g_args
+
+
+def test_pansharpen_worker_uint16(test_pansharp_data):
+    open_files, pan_window, _, g_args = test_pansharp_data
+    pan_output = pansharpen_worker(open_files, pan_window, _, g_args)
+    assert pan_output.dtype == np.uint16
+    assert np.max(pan_output) < 2**16
+    assert np.max(pan_output) > 2**8
+
+
+def test_pansharpen_worker_uint8(test_pansharp_data):
+    open_files, pan_window, _, g_args = test_pansharp_data
+    g_args.update(dst_dtype=np.__dict__['uint8'])
+    pan_output = pansharpen_worker(open_files, pan_window, _, g_args)
+    assert pan_output.dtype == np.uint8
+    assert np.max(pan_output) < 2**8
+
 
 # Testing reproject function
 def test_reproject():
