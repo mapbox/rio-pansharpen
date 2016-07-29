@@ -15,7 +15,7 @@ dependencies:
 
 test:
     override:
-        - py.test --cov pansharpening --cov-report term-missing
+        - py.test --cov pansharpening --cov-report term-missing --ignore=venv
     post:
         - codecov
 
