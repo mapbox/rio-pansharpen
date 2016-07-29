@@ -1,7 +1,6 @@
 machine:
   pre:
-    - cat /etc/*release
-    - pyenv global 2.7.9 3.5.1
+    - pyenv local 2.7.9 3.5.0
 
 dependencies:
     pre:
