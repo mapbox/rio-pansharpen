@@ -54,20 +54,23 @@ def pansharpen_worker(open_files, pan_window, _, g_args):
     # Main Pansharpening Processing
     pan_sharpened, _ = Brovey(rgb, pan, g_args["weight"], pan_dtype)
 
-    # convert to 8bit value range in place
-    scale = float(np.iinfo(np.uint16).max) / float(np.iinfo(np.uint8).max)
+    if g_args["dst_dtype"] == np.__dict__['uint16']:
+        scale = 1
+    else:
+        # convert to 8bit value range in place
+        scale = float(np.iinfo(np.uint16).max) / float(np.iinfo(np.uint8).max)
 
     pan_sharpened = np.concatenate(
-        [(pan_sharpened / scale).astype(np.uint8),
+        [(pan_sharpened / scale).astype(g_args["dst_dtype"]),
          simple_mask(
-             pan_sharpened.astype(np.uint8),
+             pan_sharpened.astype(g_args["dst_dtype"]),
              (0, 0, 0)).reshape(
                  1, pan_sharpened.shape[1], pan_sharpened.shape[2])])
 
     return pan_sharpened
 
 
-def pansharpen(src_paths, dst_path, weight, verbosity,
+def pansharpen(src_paths, dst_path, dst_dtype, weight, verbosity,
                jobs, half_window, customwindow):
     """
     Main entry point called by the command line utility
@@ -84,12 +87,14 @@ def pansharpen(src_paths, dst_path, weight, verbosity,
             raise RuntimeError(
                 "Pan band must be 1 band - is {}".format(profile['count']))
 
+        dst_dtype = np.__dict__[dst_dtype]
+
         profile.update(
             transform=guard_transform(pan_src.transform),
             compress='DEFLATE',
             blockxsize=512,
             blockysize=512,
-            dtype=np.uint8,
+            dtype=dst_dtype,
             tiled=True,
             count=4,
             photometric='rgb')
@@ -107,6 +112,7 @@ def pansharpen(src_paths, dst_path, weight, verbosity,
     g_args = {
         "verb": verbosity,
         "half_window": half_window,
+        "dst_dtype": dst_dtype,
         "weight": weight,
         "dst_aff": guard_transform(profile['transform']),
         "dst_crs": profile['crs'],

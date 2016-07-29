@@ -7,15 +7,15 @@ with codecs_open('README.md', encoding='utf-8') as f:
     long_description = f.read()
 
 
-setup(name='pansharpen',
+setup(name='pansharpening',
       version='0.1.0',
-      description=u"Pansharpen",
+      description=u"Pansharpening",
       long_description=long_description,
       classifiers=[],
       keywords='',
       author=u"Sean Gillies",
       author_email='sean@mapbox.com',
-      url='https://github.com/mapbox/pansharpen',
+      url='https://github.com/mapbox/pansharpening',
       license='MIT',
       packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
       include_package_data=True,
@@ -26,7 +26,7 @@ setup(name='pansharpen',
           'rio-mucho',
       ],
       extras_require={
-          'test': ['pytest', 'hypothesis'],
+          'test': ['pytest', 'hypothesis', 'pytest-cov','codecov'],
       },
       entry_points="""
       [console_scripts]
