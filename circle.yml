@@ -1,5 +1,6 @@
 machine:
   pre:
+    - cat /etc/*release
     - pyenv global 2.7.11 3.5.1
 
 dependencies:
