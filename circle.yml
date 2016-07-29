@@ -1,6 +1,6 @@
 machine:
   pre:
-    - pyenv local 2.7.9 3.5.0
+    - pyenv local 2.7.10 3.5.0
 
 dependencies:
     pre:
@@ -15,14 +15,6 @@ dependencies:
         - pip install -e ".[test]"
 
 test:
-    pre:
-        - which python
-        - v=$(python --version 2>& 1); if [ "$v" == "Python 2.7.11" ]; then echo "$v OK"; else ! echo "$v ERR"; fi
-        - which python2
-        - v=$(python2 --version 2>& 1); if [ "$v" == "Python 2.7.11" ]; then echo "$v OK"; else ! echo "$v ERR"; fi
-        - which python3
-        - v=$(python3 --version 2>& 1); if [ "$v" == "Python 3.5.1" ]; then echo "$v OK"; else ! echo "$v ERR"; fi
-
     override:
         - py.test --cov pansharpen --cov-report term-missing --ignore=venv
     post:
