@@ -8,7 +8,7 @@ from rasterio.enums import Resampling
 from rasterio.warp import reproject
 
 
-def adjust_block_size(width, height, blocksize):
+def _adjust_block_size(width, height, blocksize):
     if width % blocksize == 1:
         blocksize += 1
     elif height % blocksize == 1:
@@ -16,7 +16,7 @@ def adjust_block_size(width, height, blocksize):
     return blocksize
 
 
-def make_windows(width, height, blocksize):
+def _make_windows(width, height, blocksize):
     """
     Manually makes windows of size equivalent to
     pan band image
@@ -27,7 +27,7 @@ def make_windows(width, height, blocksize):
                    (x, min((x + blocksize), width)))
 
 
-def make_affine(fr_shape, to_shape):
+def _make_affine(fr_shape, to_shape):
     fr_window_affine = Affine(
         1, 0, 0,
         0, -1, 0)
@@ -39,11 +39,11 @@ def make_affine(fr_shape, to_shape):
     return fr_window_affine, to_window_affine
 
 
-def half_window(window):
+def _half_window(window):
     return tuple((w[0] / 2, w[1] / 2) for w in window)
 
 
-def check_crs(inputs):
+def _check_crs(inputs):
     for i in range(1, len(inputs)):
         if inputs[i-1]['crs'] != inputs[i]['crs']:
             raise RuntimeError(
@@ -51,8 +51,21 @@ def check_crs(inputs):
                 'received %s and %s' % (inputs[i-1]['crs'],
                                         inputs[i]['crs']))
 
+def _create_apply_mask(rgb):
+    # Create a mask of pixels where any channel is 0 (nodata):
+    color_mask = np.minimum(
+        rgb[0],
+        np.minimum(rgb[1], rgb[2])) * np.iinfo(np.uint16).max
 
-def upsample(rgb, panshape, src_aff, src_crs, to_aff, to_crs):
+    # Apply the mask:
+    masked_rgb = np.array([
+        np.minimum(band, color_mask) for band in rgb])
+
+    return masked_rgb
+
+
+
+def _upsample(rgb, panshape, src_aff, src_crs, to_aff, to_crs):
     up_rgb = np.empty((rgb.shape[0], panshape[0], panshape[1]), dtype=rgb.dtype)
 
     reproject(
@@ -66,7 +79,7 @@ def upsample(rgb, panshape, src_aff, src_crs, to_aff, to_crs):
     return up_rgb
 
 
-def simple_mask(data, ndv):
+def _simple_mask(data, ndv):
     '''Exact nodata masking'''
     nd = np.iinfo(data.dtype).max
     alpha = np.invert(np.all(np.dstack(data) == ndv, axis=2)).astype(data.dtype) * nd
@@ -74,13 +87,13 @@ def simple_mask(data, ndv):
     return alpha
 
 
-def pad_window(wnd, pad):
+def _pad_window(wnd, pad):
     return (
         (wnd[0][0] - pad, wnd[0][1] + pad),
         (wnd[1][0] - pad, wnd[1][1] + pad))
 
 
-def calc_windows(pan_src, customwindow):
+def _calc_windows(pan_src, customwindow):
     if customwindow:
         blocksize = adjust_block_size(pan_src.meta['width'],
                                       pan_src.meta['height'],
@@ -93,3 +106,21 @@ def calc_windows(pan_src, customwindow):
         windows = [(window, ij) for ij, window in pan_src.block_windows()]
 
     return windows
+
+
+def _rescale(arr, ndv, dst_dtype):
+    if dst_dtype == np.__dict__['uint16']:
+        scale = 1
+    else:
+        # convert to 8bit value range in place
+        scale = float(np.iinfo(np.uint16).max) / float(np.iinfo(np.uint8).max)
+
+    return np.concatenate(
+                [(arr / scale).astype(dst_dtype),
+                 _simple_mask(arr.astype(dst_dtype),
+                              (ndv, ndv, ndv)
+                             ).reshape(1, arr.shape[1], arr.shape[2])
+                ]
+            )
+
+

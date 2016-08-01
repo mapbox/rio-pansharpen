@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import click
-from pansharpen.worker import pansharpen
+from pansharpen.worker import calculate_landsat_pansharpen
 
 @click.command('pansharpen')
 @click.argument('src_paths', type=click.Path(exists=True), nargs=-1)
@@ -31,7 +31,7 @@ def cli(src_paths, dst_path, dst_dtype, weight, verbosity, jobs, half_window, cu
             'custom blocksize must be greater than 150',
             param=customwindow, param_hint='--customwindow')
 
-    return pansharpen(src_paths, dst_path, dst_dtype, weight, verbosity,
+    return calculate_landsat_pansharpen(src_paths, dst_path, dst_dtype, weight, verbosity,
                       jobs, half_window, customwindow)
 
 if __name__ == '__main__':

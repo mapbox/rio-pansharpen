@@ -9,12 +9,49 @@ from pansharpen.methods import Brovey
 from rasterio.transform import guard_transform
 
 from . utils import (
-    pad_window, upsample, simple_mask, calc_windows, check_crs, half_window)
+    _pad_window, _upsample, _simple_mask,
+    _calc_windows, _check_crs, _create_apply_mask,
+    _half_window, _rescale)
 
 
-def pansharpen_worker(open_files, pan_window, _, g_args):
+def pansharpen(vis, vis_transform, pan, pan_transform,
+               pan_dtype, r_crs, dst_crs, weight,
+               method="Brovey", src_nodata=0):
+    """Pansharpen a lower-resolution visual band
+
+    Parameters
+    =========
+    vis: ndarray, 3D with shape == (3, vh, vw)
+        Visual band array with RGB bands
+    vis_transform: Affine
+        affine transform defining the georeferencing of the vis array
+    pan: ndarray, 2D with shape == (ph, pw)
+        Panchromatic band array
+    pan_transform: Affine
+        affine transform defining the georeferencing of the pan array
+    method: string
+        Algorithm for pansharpening; default Brovey
+
+    Returns:
+    ======
+    pansharp: ndarray, 3D with shape == (3, ph, pw)
+        pansharpened visual band
+        affine transform is identical to `pan_transform`
     """
-    Reading input files and performing pansharpening on each window
+    rgb = _upsample(_create_apply_mask(vis), pan.shape, vis_transform, r_crs,
+                    pan_transform, dst_crs)
+
+    # Main Pansharpening Processing
+    if method == Brovey:
+        pansharp, _ = Brovey(rgb, pan, weight, pan_dtype)
+    # TODO: add other methods
+
+    return pansharp
+
+
+def _pansharpen_worker(open_files, pan_window, _, g_args):
+    """rio mucho worker for pansharpening. It reads input
+    files and performing pansharpening on each window
     """
     pan = open_files[0].read(1, window=pan_window).astype(np.float32)
     pan_dtype = open_files[0].meta['dtype']
@@ -26,7 +63,7 @@ def pansharpen_worker(open_files, pan_window, _, g_args):
         padding = 2
         pan_bounds = open_files[0].window_bounds(pan_window)
         rgb_base_window = open_files[1].window(*pan_bounds)
-        rgb_window = pad_window(rgb_base_window, padding)
+        rgb_window = _pad_window(rgb_base_window, padding)
 
     # Determine affines for those windows
     pan_affine = open_files[0].window_transform(pan_window)
@@ -36,51 +73,32 @@ def pansharpen_worker(open_files, pan_window, _, g_args):
         [src.read(window=rgb_window, boundless=True).astype(np.float32)
          for src in open_files[1:]])
 
-    # Create a mask of pixels where any channel is 0 (nodata):
-    color_mask = np.minimum(
-        rgb[0],
-        np.minimum(rgb[1], rgb[2])) * 2 ** 16
-
-    # Apply the mask:
-    rgb = np.array([
-        np.minimum(band, color_mask) for band in rgb])
-
     if g_args["verb"]:
-        click.echo('pan shape: %s, rgb shape %s' % (pan.shape, rgb[0].shape))
+        click.echo('pan shape: %s, rgb shape %s' % (pan.shape, rgb.shape))
 
-    rgb = upsample(rgb, pan.shape, rgb_affine, g_args["r_crs"],
-                   pan_affine, g_args['dst_crs'])
+    pansharpened = pansharpen(rgb, rgb_affine, pan, pan_affine, pan_dtype,
+                            g_args["r_crs"], g_args["dst_crs"],
+                            g_args["weight"], method=Brovey)
 
-    # Main Pansharpening Processing
-    pan_sharpened, _ = Brovey(rgb, pan, g_args["weight"], pan_dtype)
+    pan_rescale = _rescale(pansharpened,
+                           g_args["src_nodata"],
+                           g_args["dst_dtype"])
 
-    if g_args["dst_dtype"] == np.__dict__['uint16']:
-        scale = 1
-    else:
-        # convert to 8bit value range in place
-        scale = float(np.iinfo(np.uint16).max) / float(np.iinfo(np.uint8).max)
-
-    pan_sharpened = np.concatenate(
-        [(pan_sharpened / scale).astype(g_args["dst_dtype"]),
-         simple_mask(
-             pan_sharpened.astype(g_args["dst_dtype"]),
-             (0, 0, 0)).reshape(
-                 1, pan_sharpened.shape[1], pan_sharpened.shape[2])])
-
-    return pan_sharpened
+    return pan_rescale
 
 
-def pansharpen(src_paths, dst_path, dst_dtype, weight, verbosity,
-               jobs, half_window, customwindow):
+def calculate_landsat_pansharpen(src_paths, dst_path, dst_dtype,
+                                 weight, verbosity, jobs, half_window,
+                                 customwindow):
     """
     Main entry point called by the command line utility
 
     Pansharpening a landsat scene --
     Opening files, reading input meta data and writing the result
-    of pansharpening into each window respentively.
+    of pansharpening into each window respectively.
     """
     with rasterio.open(src_paths[0]) as pan_src:
-        windows = calc_windows(pan_src, customwindow)
+        windows = _calc_windows(pan_src, customwindow)
         profile = pan_src.profile
 
         if profile['count'] > 1:
@@ -107,7 +125,7 @@ def pansharpen(src_paths, dst_path, dst_dtype, weight, verbosity,
         raise RuntimeError(
             "Pan band must be larger than RGB bands")
 
-    check_crs([r_meta, profile])
+    _check_crs([r_meta, profile])
 
     g_args = {
         "verb": verbosity,
@@ -117,9 +135,10 @@ def pansharpen(src_paths, dst_path, dst_dtype, weight, verbosity,
         "dst_aff": guard_transform(profile['transform']),
         "dst_crs": profile['crs'],
         "r_aff": guard_transform(r_meta['transform']),
-        "r_crs": r_meta['crs']}
+        "r_crs": r_meta['crs'],
+        "src_nodata": 0}
 
-    with riomucho.RioMucho(src_paths, dst_path, pansharpen_worker,
+    with riomucho.RioMucho(src_paths, dst_path, _pansharpen_worker,
                            windows=windows, global_args=g_args,
                            options=profile, mode='manual_read') as rm:
         rm.run(jobs)
