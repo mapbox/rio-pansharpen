@@ -1,0 +1,191 @@
+import pytest
+import numpy as np
+from hypothesis import given
+import hypothesis.strategies as st
+from hypothesis.extra.numpy import arrays
+from rasterio.warp import reproject
+from pansharpen.utils import(
+    _adjust_block_size, _check_crs, _simple_mask,
+    _pad_window, _rescale, _make_windows, _make_affine,
+    _half_window)
+
+
+
+# Testing _fix_window_size function
+@given(
+    st.integers(min_value=1),
+    st.integers(min_value=1),
+    st.integers(min_value=1))
+def test_fix_window_size(w, h, blocksize):
+    if (w % blocksize == 1) or (h % blocksize == 1):
+        assert _adjust_block_size(w, h, blocksize) == blocksize + 1
+    else:
+        assert _adjust_block_size(w, h, blocksize) == blocksize
+
+# Testing _check_crs_function
+crs_strategy = st.lists(elements=st.dictionaries(
+        st.sampled_from(['crs']),
+        st.sampled_from(('EPSG:32654', 'EPSG:25832', 'EPSG:3857')),
+                        min_size=1),
+    min_size=2, max_size =2)
+@given(crs_strategy)
+def test_check_crs(crs_list):
+        if crs_list[0]['crs'] != crs_list[1]['crs']:
+            with pytest.raises(RuntimeError):
+                _check_crs(crs_list)
+
+# Testing _create_apply_mask function
+# Failing on purpose. Function needs rewriting
+@given(arrays(np.int16, (3, 8, 8), elements=st.integers(0,50)))
+def test_create_apply_mask(rgb):
+    # Create a mask of pixels where any channel is 0 (nodata):
+    color_mask = np.minimum(
+        rgb[0],
+        np.minimum(rgb[1], rgb[2])) * (np.iinfo(np.uint16).max + 1)
+    # Apply the mask:
+    masked_rgb = np.array([
+        np.minimum(band, color_mask) for band in rgb])
+
+    assert np.all(color_mask[color_mask !=0]
+                  > np.iinfo(np.uint16).max)
+    assert np.all(masked_rgb <= rgb)
+
+
+# Testing _simple_mask function
+@given(arrays(np.int16, (3, 8, 8)), st.integers(0,0))
+def test_simple_mask(data, ndv):
+    '''Exact nodata masking'''
+    nd = np.iinfo(data.dtype).max
+    assert np.array_equal(_simple_mask(data, ndv),
+                          np.invert(np.all(np.dstack(data)
+                                    == ndv, axis=2)).astype(data.dtype)
+                                    * nd)
+
+# Testing _pad_window function
+@given(
+    st.tuples(
+        st.tuples(
+            st.integers(), st.integers()),
+        st.tuples(
+            st.integers(), st.integers())),
+        st.integers()
+    )
+def test_pad_window(wnd, pad):
+    assert _pad_window(wnd, pad)[0] == (wnd[0][0] - pad, wnd[0][1] + pad)
+    assert _pad_window(wnd, pad)[1] == (wnd[1][0] - pad, wnd[1][1] + pad)
+
+
+
+# Testing _rescale function
+@given(arrays(np.int16, (3, 8, 8)),
+    st.integers(0,0),
+    st.sampled_from(('uint8', 'uint16')))
+def test_rescale(arr, ndv, dst_dtype):
+    if dst_dtype == np.__dict__['uint16']:
+        assert np.array_equal(_rescale(arr, ndv, dst_dtype), np.concatenate(
+                [(arr).astype(dst_dtype),
+                 _simple_mask(arr.astype(dst_dtype),
+                              (ndv, ndv, ndv)
+                             ).reshape(1, arr.shape[1], arr.shape[2])
+                ]
+            )
+        )
+    else:
+        assert np.array_equal(_rescale(arr, ndv, dst_dtype), np.concatenate(
+                [(arr / 257.0).astype(dst_dtype),
+                 _simple_mask(arr.astype(dst_dtype),
+                              (ndv, ndv, ndv)
+                             ).reshape(1, arr.shape[1], arr.shape[2])
+                ]
+            )
+        )
+
+
+# Testing make_windows_block function's randow element
+wh = st.integers(min_value=2, max_value=3500)
+@given(
+    wh,
+    wh,
+    wh.filter(lambda x: x < wh))
+def test_make_windows_full_block(w, h, blocksize):
+    windows = list(_make_windows(w, h, blocksize))
+    wind = np.random.randint(len(windows)/2 + 1)
+    if wind < 2:
+        assert windows[wind][0][1] - windows[wind][0][0] <= blocksize \
+            and windows[wind][1][1] - windows[wind][1][0] <= blocksize
+    else:
+        assert windows[wind][0][1] - windows[wind][0][0] == blocksize \
+            or windows[wind][1][1] - windows[wind][1][0] == blocksize
+
+
+# Testing make_windows_block functon's last element
+@given(
+    wh,
+    wh,
+    wh.filter(lambda x: x < wh))
+def test_make_windows_last_block(w, h, blocksize):
+    windows = list(_make_windows(w, h, blocksize))
+    assert windows[-1][0][1] == h and windows[-1][1][1] == w
+    assert windows[-1][0][1] - windows[-1][0][0] <= blocksize \
+        and windows[-1][1][1] - windows[-1][1][0] <= blocksize
+
+# Testing make_affine function
+@given(
+    st.tuples(st.integers(min_value=2), st.integers(min_value=2)),
+    st.tuples(st.integers(min_value=2), st.integers(min_value=2)))
+def test_make_affine(fr_shape, to_shape):
+    fr_affine, to_affine = _make_affine(fr_shape, to_shape)
+    assert to_affine[4] == -(fr_shape[0] / float(to_shape[0]))
+    assert fr_affine[2] == float(0) and to_affine[2] == float(0)
+    assert fr_affine[0] == float(1) and fr_affine[4] == -float(1)
+
+
+# Testing _half_window function
+@given(
+    st.tuples(
+        st.tuples(
+            st.integers(min_value=2),
+            st.integers(min_value=2)).filter(lambda x: x[0] < x[1]),
+        st.tuples(
+            st.integers(min_value=2),
+            st.integers(min_value=2)).filter(lambda x: x[0] < x[1])
+        ).filter(lambda x: x[0] != x[1])
+    )
+def test_half_window(window):
+    half_window = np.array(_half_window(window))
+    assert np.all(map(lambda x: x[0] <= x[1], half_window))
+    assert np.all((np.array(window) % half_window) <= 1)
+    assert window[0][0]/half_window[0][0] == 2
+    assert window[-1][-1]/half_window[-1][-1] == 2
+
+
+# def Affine():
+#     return st.tuples(
+#             st.floats(min_value=1, max_value = 8),
+#             st.floats(min_value=0.0, max_value=0.0),
+#             st.floats(min_value=0.0),
+#             st.floats(min_value=0, max_value=0),
+#             st.floats(min_value = -8, max_value=0.0),
+#             st.floats(min_value=0.0)
+#             )
+# # Testing _upsample function
+# @given(arrays(np.int16, (3, 8, 8)), arrays(np.int16, (3, 16, 16)),
+#        Affine,
+#        st.sampled_from(('EPSG:32654', 'EPSG:25832', 'EPSG:3857')),
+#        Affine * 2,
+#        st.sampled_from(('EPSG:32654', 'EPSG:25832', 'EPSG:3857'))
+# )
+# def test_upsample(rgb, panshape, src_aff, src_crs, to_aff, to_crs):
+#     up_rgb = np.empty((rgb.shape[0], panshape[0], panshape[1]), dtype=rgb.dtype)
+
+#     reproject(
+#         rgb, up_rgb,
+#         src_transform=src_aff,
+#         src_crs=src_crs,
+#         dst_transform=to_aff,
+#         dst_crs=to_crs,
+#         resampling=Resampling.bilinear)
+#     print up_rgb
+
+#     return up_rgb
+
