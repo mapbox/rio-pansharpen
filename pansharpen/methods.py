@@ -2,7 +2,7 @@ import rasterio as rio
 import numpy as np
 
 
-def calculateRatio(rgb, pan, weight):
+def _calculateRatio(rgb, pan, weight):
     return pan / ((rgb[0] + rgb[1] + rgb[2] * weight) / (2 + weight))
 
 
@@ -14,7 +14,7 @@ def Brovey(rgb, pan, weight, pan_dtype):
     multispectral intensities.
     """
     with np.errstate(invalid='ignore', divide='ignore'):
-        ratio = calculateRatio(rgb, pan, weight)
+        ratio = _calculateRatio(rgb, pan, weight)
     with np.errstate(invalid='ignore'):
         sharp = np.clip(ratio * rgb, 0, np.iinfo(pan_dtype).max)
         return  sharp.astype(pan_dtype), ratio
