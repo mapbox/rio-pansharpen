@@ -1,77 +1,11 @@
 import pytest
-import pansharpen
+from pansharpen import utils
 import numpy as np
-import pansharpen.scripts.pansharp_methods as pansharp_methods
+import pansharpen.methods as pansharp_methods
 import rasterio
-from hypothesis import given
-import hypothesis.strategies as st
+from affine import Affine
+from pansharpen.worker import pansharpen_worker
 
-"""
-Test Basic functions
-"""
-
-# Testing fix_window_size function
-@given(st.integers(min_value=1),
-    st.integers(min_value=1),
-    st.integers(min_value=1))
-def test_fix_window_size(w, h, blocksize):
-    if (w % blocksize == 1) or (h % blocksize == 1):
-        assert pansharpen.adjust_block_size(w, h, blocksize) == blocksize + 1
-    else: 
-        assert pansharpen.adjust_block_size(w, h, blocksize) == blocksize
-
-# Testing make_windows_block function's randow element
-@given(st.integers(min_value=1),
-    st.integers(min_value=1),
-    st.integers(min_value=1))
-def test_make_windows_full_block(w, h, blocksize):
-    windows = list(pansharpen.make_windows(w, h, blocksize))
-    wind = np.random.randint(len(windows)/2 + 1)
-    if wind < 2:
-        assert windows[wind][0][1] - windows[wind][0][0] <= blocksize \
-            and windows[wind][1][1] - windows[wind][1][0] <= blocksize
-    else:
-        assert windows[wind][0][1] - windows[wind][0][0] == blocksize \
-            or windows[wind][1][1] - windows[wind][1][0] == blocksize
-
-# Testing make_windows_block functon's last element
-@given(st.integers(min_value=1),
-    st.integers(min_value=1),
-    st.integers(min_value=1))
-def test_make_windows_last_block(w, h, blocksize):
-    windows = list(pansharpen.make_windows(w, h, blocksize))
-    assert windows[-1][0][1] == h and windows[-1][1][1] == w
-    assert windows[-1][0][1] - windows[-1][0][0] <= blocksize \
-        and windows[-1][1][1] - windows[-1][1][0] <= blocksize
-
-# Testing make_affine function
-@given(st.tuples(st.integers(min_value=2), st.integers(min_value=2)),
-    st.tuples(st.integers(min_value=2), st.integers(min_value=2)))
-def test_make_affine(fr_shape, to_shape):
-    fr_affine, to_affine = pansharpen.make_affine(fr_shape,to_shape)
-    assert to_affine[4] == -(fr_shape[0] / float(to_shape[0]))
-    assert fr_affine[2] == float(0) and to_affine[2] == float(0)
-    assert fr_affine[0] == float(1) and fr_affine[4] == -float(1)
-
-# Testing load_half_window function
-@given(st.tuples(
-        st.tuples(
-            st.integers(min_value=2),
-            st.integers(min_value=2)).filter(lambda x: x[0] < x[1]),
-        st.tuples(
-            st.integers(min_value=2),
-            st.integers(min_value=2)).filter(lambda x: x[0] < x[1])
-        ).filter(lambda x: x[0] != x[1])
-    )
-def test_load_half_window(window):
-    half_window = np.array(pansharpen.load_half_window(window))
-    assert np.all(map(lambda x: x[0] <= x[1], half_window))
-    assert np.all((window % half_window) <= 1)
-
-
-"""
-Test advance functions
-"""
 
 # Creating random test fixture for advance functions
 @pytest.fixture
@@ -92,11 +26,54 @@ def test_data():
     return test_data_pan, test_data_rgb, test_data_src_aff,\
             test_data_src_crs, test_data_dst_aff, test_data_dst_crs
 
+
+@pytest.fixture
+def test_pansharp_data():
+    b8_path = 'tests/fixtures/tiny_20_tiffs/LC81070352015122LGN00/'\
+              'LC81070352015122LGN00_B8.tif'
+    b4_path = 'tests/fixtures/tiny_20_tiffs/LC81070352015122LGN00/'\
+              'LC81070352015122LGN00_B4.tif'
+    b3_path = 'tests/fixtures/tiny_20_tiffs/LC81070352015122LGN00/'\
+              'LC81070352015122LGN00_B3.tif'
+    b2_path = 'tests/fixtures/tiny_20_tiffs/LC81070352015122LGN00/'\
+              'LC81070352015122LGN00_B2.tif'
+    band_paths = [b8_path, b4_path, b3_path, b2_path]
+    pan_window = ((1536, 1792), (1280, 1536))
+    g_args = {'half_window': False,
+              'dst_aff': Affine(75.00483870967741, 0.0, 300892.5,
+                                0.0, -75.00475285171103, 4107007.5),
+              'verb': False, 'weight': 0.2,
+              'dst_crs': {'init': u'epsg:32654'},
+              'r_crs': {'init': u'epsg:32654'},
+              'dst_dtype': np.__dict__['uint16'],
+              'r_aff': Affine(150.0193548387097, 0.0, 300885.0,
+                              0.0, -150.0190114068441, 4107015.0)}
+
+    return [rasterio.open(f) for f in band_paths], pan_window, (6, 5) , g_args
+
+
+def test_pansharpen_worker_uint16(test_pansharp_data):
+    open_files, pan_window, _, g_args = test_pansharp_data
+    pan_output = pansharpen_worker(open_files, pan_window, _, g_args)
+    assert pan_output.dtype == np.uint16
+    assert np.max(pan_output) < 2**16
+    assert np.max(pan_output) > 2**8
+
+
+def test_pansharpen_worker_uint8(test_pansharp_data):
+    open_files, pan_window, _, g_args = test_pansharp_data
+    g_args.update(dst_dtype=np.__dict__['uint8'])
+    pan_output = pansharpen_worker(open_files, pan_window, _, g_args)
+    assert pan_output.dtype == np.uint8
+    assert np.max(pan_output) < 2**8
+
+
 # Testing reproject function
 def test_reproject():
-    from rasterio.warp import reproject, RESAMPLING
+    from rasterio.warp import reproject
+    from rasterio.enums import Resampling
 
-    with rasterio.drivers():
+    with rasterio.Env():
         # As source: a 1024 x 1024 raster centered on 0 degrees E and 0
         # degrees N, each pixel covering 15".
         rows, cols = src_shape = (1024, 1024)
@@ -111,7 +88,8 @@ def test_reproject():
         # Destination: a 2048 x 2048 dataset in Web Mercator (EPSG:3857)
         # with origin at 0.0, 0.0.
         dst_shape = (2048, 2048)
-        dst_transform = [-237481.5, 425.0, 0.0, 237536.4, 0.0, -425.0]
+        dst_transform = Affine.from_gdal(
+            -237481.5, 425.0, 0.0, 237536.4, 0.0, -425.0)
         dst_crs = {'init': 'EPSG:3857'}
         destination = np.zeros(dst_shape, np.uint8)
 
@@ -122,7 +100,7 @@ def test_reproject():
             src_crs=src_crs,
             dst_transform=dst_transform,
             dst_crs=dst_crs,
-            resampling=RESAMPLING.nearest)
+            resampling=Resampling.nearest)
 
         # Assert that the destination is only partly filled.
         assert destination.any()
@@ -131,10 +109,10 @@ def test_reproject():
 # Testing upsample function
 def test_upsample(test_data):
 
-    with rasterio.drivers():
+    with rasterio.Env():
 
         pan, rgb, src_aff, src_crs, dst_aff, dst_crs = test_data
-        up_rgb = pansharpen.upsample(rgb, pan.shape, src_aff, 
+        up_rgb = utils.upsample(rgb, pan.shape, src_aff, 
                                     src_crs, dst_aff, dst_crs)
 
         # test upsampled shape
