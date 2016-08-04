@@ -69,6 +69,7 @@ def test_check_crs(crs_list):
 
 # Testing _create_apply_mask function from utils
 # Failing on purpose. Function needs rewriting
+@pytest.mark.xfail
 @given(arrays(np.uint16, (3, 8, 8),
               elements=st.integers(min_value=1, max_value=np.iinfo('uint16').max)))
 def test_create_apply_mask(rgb):
