@@ -57,8 +57,9 @@ def _create_apply_mask(rgb):
         rgb[0],
         np.minimum(rgb[1], rgb[2])) * np.iinfo(np.uint16).max
 
+    # TODO: Change
     # ((b[0]!=0) &(b[1]!=0) & (b[2] !=0).astype(int))* np.iinfo(np.uint16).max
-
+    # np.all(np.rollaxis(test, 0, 3) != 0, axis=2).astype(np.uint16) * np.iinfo(np.uint16).max
     # Apply the mask:
     masked_rgb = np.array([
         np.minimum(band, color_mask) for band in rgb])

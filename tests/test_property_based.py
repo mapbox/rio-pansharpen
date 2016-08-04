@@ -5,7 +5,7 @@ import hypothesis.strategies as st
 from hypothesis.extra.numpy import arrays
 from rasterio.warp import reproject
 from pansharpen.methods import(
-    _calculateRatio, Brovey)
+    calculateRatio, Brovey)
 from pansharpen.utils import(
     _adjust_block_size, _check_crs, _simple_mask,
     _pad_window, _rescale, _make_windows, _make_affine,
@@ -18,20 +18,20 @@ from pansharpen.utils import(
 
 # Testing _calculateRatio function from methods
 @given(arrays(np.uint16, (3, 8, 8),
-              elements=st.integers(min_value=1, max_value=1000)),
+              elements=st.integers(min_value=1, max_value=np.iinfo('uint16').max)),
        arrays(np.uint16, (3, 8, 8),
-              elements=st.integers(min_value=1, max_value=1000)),
+              elements=st.integers(min_value=1, max_value=np.iinfo('uint16').max)),
        st.floats(min_value = 0.2, max_value = 1.0))
 def test_calculateRatio(rgb, pan, weight):
     output = pan / ((rgb[0] + rgb[1] + rgb[2] * weight) / (2 + weight))
-    assert np.array_equal(output, _calculateRatio(rgb, pan, weight))
+    assert np.array_equal(output, calculateRatio(rgb, pan, weight))
 
 
 # Testing Brovey function from methods
 @given(arrays(np.uint16, (3, 8, 8),
-              elements=st.integers(min_value=1, max_value=1000)),
+              elements=st.integers(min_value=1, max_value=np.iinfo('uint16').max)),
        arrays(np.uint16, (3, 8, 8),
-              elements=st.integers(min_value=1, max_value=1000)),
+              elements=st.integers(min_value=1, max_value=np.iinfo('uint16').max)),
        st.floats(min_value = 0.2, max_value = 1.0),
        st.sampled_from(('uint8', 'uint16')))
 def test_Brovey(rgb, pan, weight, pan_dtype):
@@ -53,6 +53,7 @@ def test_fix_window_size(w, h, blocksize):
     else:
         assert _adjust_block_size(w, h, blocksize) == blocksize
 
+
 # Testing _check_crs_function from utils
 crs_strategy = st.lists(elements=st.dictionaries(
         st.sampled_from(['crs']),
@@ -65,10 +66,11 @@ def test_check_crs(crs_list):
             with pytest.raises(RuntimeError):
                 _check_crs(crs_list)
 
+
 # Testing _create_apply_mask function from utils
 # Failing on purpose. Function needs rewriting
 @given(arrays(np.uint16, (3, 8, 8),
-              elements=st.integers(min_value=1, max_value=1000)))
+              elements=st.integers(min_value=1, max_value=np.iinfo('uint16').max)))
 def test_create_apply_mask(rgb):
     # Create a mask of pixels where any channel is 0 (nodata):
     color_mask = np.minimum(
@@ -85,7 +87,7 @@ def test_create_apply_mask(rgb):
 
 # Testing _simple_mask function from utils
 @given(arrays(np.uint16, (3, 8, 8),
-              elements=st.integers(min_value=1, max_value=1000)),
+              elements=st.integers(min_value=1, max_value=np.iinfo('uint16').max)),
        st.integers(0,0))
 def test_simple_mask(data, ndv):
     '''Exact nodata masking'''
@@ -94,6 +96,7 @@ def test_simple_mask(data, ndv):
                           np.invert(np.all(np.dstack(data)
                                     == ndv, axis=2)).astype(data.dtype)
                                     * nd)
+
 
 # Testing _pad_window function from utils
 @given(
@@ -109,10 +112,9 @@ def test_pad_window(wnd, pad):
     assert _pad_window(wnd, pad)[1] == (wnd[1][0] - pad, wnd[1][1] + pad)
 
 
-
 # Testing _rescale function from utils
 @given(arrays(np.uint16, (3, 8, 8),
-              elements=st.integers(min_value=1, max_value=10000)),
+              elements=st.integers(min_value=1, max_value=np.iinfo('uint16').max)),
        st.integers(0,0),
        st.sampled_from(('uint8', 'uint16')))
 def test_rescale(arr, ndv, dst_dtype):
@@ -194,6 +196,7 @@ def test_half_window(window):
     assert window[-1][-1]/half_window[-1][-1] == 2
 
 
+# Q: Do we test rasterio's reproject function?
 # def Affine():
 #     return st.tuples(
 #             st.floats(min_value=1, max_value = 8),
