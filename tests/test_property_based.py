@@ -81,7 +81,7 @@ def test_create_apply_mask(rgb):
         np.minimum(band, color_mask) for band in rgb])
 
     assert np.all(color_mask[color_mask !=0]
-                  > np.iinfo(np.uint16).max)
+                  <= np.iinfo(np.uint16).max)
     assert np.all(masked_rgb <= rgb)
 
 
