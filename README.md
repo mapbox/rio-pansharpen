@@ -1,10 +1,13 @@
 # pansharpening
+
 pansharpens Landsat 8 scenes.
 
 ## What is pansharpening?
-Pansharpening is a process of using the spatial information in the high-resolution grayscale band (panchromatic, or pan-band) and color information in the multispectral bands to create a single high-resolution color image.
 
-  ```P pan-pixel cluster + M single multispectral pixel = M pan-sharpened pixel```
+Pansharpening is a process of using the spatial information in the high-resolution grayscale band (panchromatic, or pan-band) and color information in the multispectral bands to create a single high-resolution color image.
+```
+P pan-pixel cluster + M single multispectral pixel = M pan-sharpened pixel
+```
 
 Find more examples and information in the [Mapbox pansharpening blog post](https://www.mapbox.com/blog/l8-pansharpening/).
 
@@ -15,6 +18,7 @@ We highly recommend installing in a virtualenv. Once activated,
 pip install -U pip
 pip install pansharpening
 ```
+
 Or install from source
 ```
 git checkout https://github.com/mapbox/pansharpening.git
@@ -23,7 +27,9 @@ pip install -U pip
 pip install -r requirements.txt
 pip install -e .
 ```
+
 ## Python API
+
 ### `pansharpen.worker`
 The `worker` module pansharpens Landsat 8. Visit the [USGS Landsat page](http://landsat.usgs.gov/band_designations_landsat_satellites.php) page for more information on Landsat 8 band designations.
 
@@ -47,6 +53,7 @@ and outputs:
                        method="Brovey", src_nodata=0)
 
 ```
+
 #### 2.`worker.calculate_landsat_pansharpen`
 ```
 >>> from pansharpen import worker
@@ -87,10 +94,8 @@ Options:
   --help                 Show this message and exit.
 ```
 
-======
-
 ## Comparison of Different Pansharpening Methods
+
 We've implemented the Weighted Brovey Transform for pansharpening, which is appropriate for data like Landsat where the panchromatic band is relatively similar in resolution to the color bands.
 
 For more information on other pansharpening methods such as IHS, PCA, P+XS, Wavelet, VWP, Wavelet with Canny Edge Detector etc, please read our notes [here](https://github.com/mapbox/pansharpening/blob/ab0d22dfa3cb0ff5ed457b9babc119185b55f517/comparison_pansharp_methods.md).
-
