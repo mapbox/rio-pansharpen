@@ -20,7 +20,7 @@ def read(fname):
 
 
 setup(name='rio-pansharpen',
-      version='0.1.0',
+      version='0.1.1',
       description=u"rio-pansharpen",
       long_description=long_description,
       classifiers=[],
