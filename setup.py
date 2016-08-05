@@ -23,7 +23,7 @@ setup(name='pansharpening',
       install_requires=[
           'click',
           'rasterio',
-          'rio-mucho',
+          'rio-mucho'
       ],
       extras_require={
           'test': ['pytest', 'hypothesis', 'pytest-cov', 'codecov'],
