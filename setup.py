@@ -1,10 +1,22 @@
-from codecs import open as codecs_open
+import os
+import sys
 from setuptools import setup, find_packages
+from setuptools.extension import Extension
+
+# Parse the version from the fiona module.
+with open('rio_toa/__init__.py') as f:
+    for line in f:
+        if line.find("__version__") >= 0:
+            version = line.split("=")[1].strip()
+            version = version.strip('"')
+            version = version.strip("'")
+            break
+
+long_description = """"""
 
 
-# Get the long description from the relevant file
-with codecs_open('README.md', encoding='utf-8') as f:
-    long_description = f.read()
+def read(fname):
+    return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 
 setup(name='rio-pansharpen',
