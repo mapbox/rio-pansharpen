@@ -18,7 +18,7 @@ pip install pansharpening
 Or install from source
 ```
 git checkout https://github.com/mapbox/pansharpening.git
-cd rio-toa
+cd pansharpening
 pip install -U pip
 pip install -r requirements.txt
 pip install -e .
