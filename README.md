@@ -98,4 +98,4 @@ Options:
 
 We've implemented the Weighted Brovey Transform for pansharpening, which is appropriate for data like Landsat where the panchromatic band is relatively similar in resolution to the color bands.
 
-For more information on other pansharpening methods such as IHS, PCA, P+XS, Wavelet, VWP, Wavelet with Canny Edge Detector etc, please read our notes [here](https://github.com/mapbox/pansharpening/blob/ab0d22dfa3cb0ff5ed457b9babc119185b55f517/comparison_pansharp_methods.md).
+For more information on other pansharpening methods such as IHS, PCA, P+XS, Wavelet, VWP, Wavelet with Canny Edge Detector etc, please read our notes [here](https://github.com/mapbox/pansharpening/blob/master/docs/pansharpening_methods.md).
