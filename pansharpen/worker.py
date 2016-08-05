@@ -51,7 +51,19 @@ def pansharpen(vis, vis_transform, pan, pan_transform,
 
 def _pansharpen_worker(open_files, pan_window, _, g_args):
     """rio mucho worker for pansharpening. It reads input
-    files and performing pansharpening on each window
+    files and performing pansharpening on each window.
+
+    Parameters
+    ------------
+    open_files: list of rasterio open files
+    pan_window: tuples
+    g_args: dictionary
+
+    Returns
+    ---------
+    out: None
+        Output is written to dst_path
+
     """
     pan = open_files[0].read(1, window=pan_window).astype(np.float32)
     pan_dtype = open_files[0].meta['dtype']
@@ -92,13 +104,22 @@ def _pansharpen_worker(open_files, pan_window, _, g_args):
 def calculate_landsat_pansharpen(src_paths, dst_path, dst_dtype,
                                  weight, verbosity, jobs, half_window,
                                  customwindow):
-    """
-    Main entry point called by the command line utility
+    """Parameters
+    ------------
+    src_paths: list of string (pan_path, r_path, g_path, b_path)
+    dst_path: string
+    dst_dtype: 'uint16', 'uint8'. [Default] 'uint8'
+    weight: float
+    jobs: integer
+    half_window: True/False. [Default] False
+    customwindow: integer. [Default] 0
 
-    Pansharpening a landsat scene --
-    Opening files, reading input meta data and writing the result
-    of pansharpening into each window respectively.
+    Returns
+    ---------
+    out: None
+        Output is written to dst_path
     """
+
     with rasterio.open(src_paths[0]) as pan_src:
         windows = _calc_windows(pan_src, customwindow)
         profile = pan_src.profile
