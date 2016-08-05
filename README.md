@@ -111,8 +111,3 @@ B_out = B * ratio
 ```
 ![screen shot 2015-04-13 at 10 14 29 pm](https://cloud.githubusercontent.com/assets/4450007/7141761/7a277a88-e288-11e4-9dd7-39e3f970603f.png)
 
-
-
-
-
-
