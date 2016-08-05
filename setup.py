@@ -7,15 +7,15 @@ with codecs_open('README.md', encoding='utf-8') as f:
     long_description = f.read()
 
 
-setup(name='pansharpening',
+setup(name='rio-pansharpen',
       version='0.1.0',
-      description=u"Pansharpening",
+      description=u"rio-pansharpen",
       long_description=long_description,
       classifiers=[],
       keywords='',
       author=u"Virginia Ng",
       author_email='virginia@mapbox.com',
-      url='https://github.com/mapbox/pansharpening',
+      url='https://github.com/mapbox/rio-pansharpen',
       license='MIT',
       packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
       include_package_data=True,

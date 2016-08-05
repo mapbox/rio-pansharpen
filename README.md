@@ -1,4 +1,4 @@
-# pansharpening
+# rio-pansharpen
 
 pansharpens Landsat 8 scenes.
 
@@ -16,13 +16,13 @@ Find more examples and information in the [Mapbox pansharpening blog post](https
 We highly recommend installing in a virtualenv. Once activated,
 ```
 pip install -U pip
-pip install pansharpening
+pip install rio-pansharpen
 ```
 
 Or install from source
 ```
-git checkout https://github.com/mapbox/pansharpening.git
-cd pansharpening
+git checkout https://github.com/mapbox/rio-pansharpen.git
+cd rio-pansharpen
 pip install -U pip
 pip install -r requirements.txt
 pip install -e .
