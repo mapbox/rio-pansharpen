@@ -6,7 +6,7 @@ Pansharpening is a process of using the spatial information in the high-resoluti
 
   ```P pan-pixel cluster + M single multispectral pixel = M pan-sharpened pixel```
 
-Read more about pansharpening on the [Mapbox blog](https://www.mapbox.com/blog/l8-pansharpening/).
+Find more examples and information in the [Mapbox pansharpening blog post](https://www.mapbox.com/blog/l8-pansharpening/).
 
 ## Install
 
@@ -25,13 +25,13 @@ pip install -e .
 ```
 ## Python API
 ### `pansharpen.worker`
-The `worker` module pansharpens Landsat 8. See more info on band designations for Landsat 8 on the [USGS Landsat page](http://landsat.usgs.gov/band_designations_landsat_satellites.php)
+The `worker` module pansharpens Landsat 8. Visit the [USGS Landsat page](http://landsat.usgs.gov/band_designations_landsat_satellites.php) page for more information on Landsat 8 band designations.
 
 #### 1. `worker.pansharpen`
 The `worker.pansharpen` function accepts the following as inputs:  
 - numpy 3D array with shape == (3, vis_height, vis_width)
 - affine transform defining the georeferencing of the vis array 
-- numpy 2D with shape == (pan_height, pan_width)
+- numpy 2D array with shape == (pan_height, pan_width)
 - affine transform defining the georeferencing of the pan array 
 - pansharpening method
 
@@ -92,22 +92,5 @@ Options:
 ## Comparison of Different Pansharpening Methods
 We've implemented the Weighted Brovey Transform for pansharpening, which is appropriate for data like Landsat where the panchromatic band is relatively similar in resolution to the color bands.
 
-For more information on other pansharpening methods such as IHS, PCA, P+XS, Wavelet, VWP, Wavelet with Canny Edge Detector etc, please read our notes [here]().
-
-#### Brovey
-
-The Brovey transformation is a sharpening method that uses a mathematical combination of the color image and high resolution data. Each resampled, multispectral pixel is multiplied by the ratio of the corresponding panchromatic pixel intensity to the sum of all the multispectral intensities. It assumes that the spectral range spanned by the panchromatic image is the same as that covered by the multispectral channels. This is done essentially by increasing the resolution of the color information in the data set to match that of the panchromatic band. Therefore, the output RGB images will have the pixel size of the input high-resolution panchromatic data. Various resampling methods include bilinear, lanczos, cubic, average, mode, min, and max.
-
-#### Weighted Brovey
-
-Particularly for Landsat 8 imagery data, we know that the pan-band does not include the full blue band, so we take a fraction of blue (optimal weight computed in this sprint) in the pan-band and use this weight to compute the sudo_pan_band, which is a weighted average of the three bands. We then compute the ratio between the pan-band and the sudo-band and adjust each of the three bands by this ratio.
-
-```
-sudo_pan = (R + B + B * weight)/(2 + weight)
-ratio = pan / sudo_pan
-R_out = R * ratio
-G_out = G * ratio
-B_out = B * ratio
-```
-![screen shot 2015-04-13 at 10 14 29 pm](https://cloud.githubusercontent.com/assets/4450007/7141761/7a277a88-e288-11e4-9dd7-39e3f970603f.png)
+For more information on other pansharpening methods such as IHS, PCA, P+XS, Wavelet, VWP, Wavelet with Canny Edge Detector etc, please read our notes [here](https://github.com/mapbox/pansharpening/blob/ab0d22dfa3cb0ff5ed457b9babc119185b55f517/comparison_pansharp_methods.md).
 
