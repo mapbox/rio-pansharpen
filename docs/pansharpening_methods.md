@@ -45,6 +45,4 @@ In case of a 2D image, a single level decomposition can be performed resulting i
 VWP combines the Wavelet method with P+XS. It uses the geometry matching term from P+XS and spectral information from wavelet decomposition. This method outperforms others by preserving the highest spectral quality (Moeller, 2008).
 
 #### Wavelet + Canny Edge Detector:
-<p>Combining DWT with Canny Edge Detectors. More details <a href="http://link.springer.com/chapter/10.1007%2F978-3-642-21783-8_6" title="Title">
-here.</a></p>
-
+Combining DWT with Canny Edge Detectors. More details [here](http://link.springer.com/chapter/10.1007%2F978-3-642-21783-8_6).
