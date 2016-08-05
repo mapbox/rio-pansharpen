@@ -51,15 +51,13 @@ def _check_crs(inputs):
                 'received %s and %s' % (inputs[i-1]['crs'],
                                         inputs[i]['crs']))
 
+
 def _create_apply_mask(rgb):
     # Create a mask of pixels where any channel is 0 (nodata):
-    color_mask = np.minimum(
-        rgb[0],
-        np.minimum(rgb[1], rgb[2])) * np.iinfo(np.uint16).max
-
-    # TODO: Change
-    # ((b[0]!=0) &(b[1]!=0) & (b[2] !=0).astype(int))* np.iinfo(np.uint16).max
-    # np.all(np.rollaxis(test, 0, 3) != 0, axis=2).astype(np.uint16) * np.iinfo(np.uint16).max
+    color_mask = np.all(
+            np.rollaxis(rgb, 0, 3) != 0,
+            axis=2
+        ).astype(np.uint16) * np.iinfo(np.uint16).max
     # Apply the mask:
     masked_rgb = np.array([
         np.minimum(band, color_mask) for band in rgb])
@@ -67,9 +65,12 @@ def _create_apply_mask(rgb):
     return masked_rgb
 
 
-
 def _upsample(rgb, panshape, src_aff, src_crs, to_aff, to_crs):
-    up_rgb = np.empty((rgb.shape[0], panshape[0], panshape[1]), dtype=rgb.dtype)
+    up_rgb = np.empty(
+        (
+            rgb.shape[0], panshape[0],
+            panshape[1]), dtype=rgb.dtype
+        )
 
     reproject(
         rgb, up_rgb,
@@ -85,7 +86,9 @@ def _upsample(rgb, panshape, src_aff, src_crs, to_aff, to_crs):
 def _simple_mask(data, ndv):
     '''Exact nodata masking'''
     nd = np.iinfo(data.dtype).max
-    alpha = np.invert(np.all(np.dstack(data) == ndv, axis=2)).astype(data.dtype) * nd
+    alpha = np.invert(
+        np.all(np.dstack(data) == ndv, axis=2)
+        ).astype(data.dtype) * nd
 
     return alpha
 
@@ -97,14 +100,14 @@ def _pad_window(wnd, pad):
 
 
 def _calc_windows(pan_src, customwindow):
-    if customwindow:
-        blocksize = adjust_block_size(pan_src.meta['width'],
-                                      pan_src.meta['height'],
-                                      int(customwindow))
+    if customwindow != 0 and isinstance(customwindow, int):
+        blocksize = _adjust_block_size(pan_src.meta['width'],
+                                       pan_src.meta['height'],
+                                       int(customwindow))
         windows = [(window, (0, 0))
-                   for window in make_windows(pan_src.meta['width'],
-                                              pan_src.meta['height'],
-                                              blocksize)]
+                   for window in _make_windows(pan_src.meta['width'],
+                                               pan_src.meta['height'],
+                                               blocksize)]
     else:
         windows = [(window, ij) for ij, window in pan_src.block_windows()]
 
@@ -119,11 +122,11 @@ def _rescale(arr, ndv, dst_dtype):
         scale = float(np.iinfo(np.uint16).max) / float(np.iinfo(np.uint8).max)
 
     return np.concatenate(
-                [(arr / scale).astype(dst_dtype),
-                 _simple_mask(arr.astype(dst_dtype),
-                              (ndv, ndv, ndv)
-                             ).reshape(1, arr.shape[1], arr.shape[2])
+                [
+                    (arr / scale).astype(dst_dtype),
+                    _simple_mask(
+                        arr.astype(dst_dtype),
+                        (ndv, ndv, ndv)
+                    ).reshape(1, arr.shape[1], arr.shape[2])
                 ]
             )
-
-

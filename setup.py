@@ -26,7 +26,7 @@ setup(name='pansharpening',
           'rio-mucho',
       ],
       extras_require={
-          'test': ['pytest', 'hypothesis', 'pytest-cov','codecov'],
+          'test': ['pytest', 'hypothesis', 'pytest-cov', 'codecov'],
       },
       entry_points="""
       [console_scripts]

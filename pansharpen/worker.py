@@ -76,9 +76,11 @@ def _pansharpen_worker(open_files, pan_window, _, g_args):
     if g_args["verb"]:
         click.echo('pan shape: %s, rgb shape %s' % (pan.shape, rgb.shape))
 
-    pansharpened = pansharpen(rgb, rgb_affine, pan, pan_affine, pan_dtype,
-                            g_args["r_crs"], g_args["dst_crs"],
-                            g_args["weight"], method=Brovey)
+    pansharpened = pansharpen(
+                        rgb, rgb_affine, pan, pan_affine, pan_dtype,
+                        g_args["r_crs"], g_args["dst_crs"],
+                        g_args["weight"], method=Brovey
+                    )
 
     pan_rescale = _rescale(pansharpened,
                            g_args["src_nodata"],
@@ -101,6 +103,7 @@ def calculate_landsat_pansharpen(src_paths, dst_path, dst_dtype,
         windows = _calc_windows(pan_src, customwindow)
         profile = pan_src.profile
 
+        print windows
         if profile['count'] > 1:
             raise RuntimeError(
                 "Pan band must be 1 band - is {}".format(profile['count']))

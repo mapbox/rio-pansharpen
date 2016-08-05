@@ -8,20 +8,22 @@ from pansharpen.methods import(
     calculateRatio, Brovey)
 from pansharpen.utils import(
     _adjust_block_size, _check_crs, _simple_mask,
-    _pad_window, _rescale, _make_windows, _make_affine,
-    _half_window)
-
-# TODO: hypothesis numpy array bug
-# hypothesis generates numpy arrays with negative integers
-# when max_value isn't specified. Limiting to 1000 for now
+    _pad_window, _create_apply_mask, _rescale,
+    _make_windows, _make_affine, _half_window)
 
 
 # Testing _calculateRatio function from methods
 @given(arrays(np.uint16, (3, 8, 8),
-              elements=st.integers(min_value=1, max_value=np.iinfo('uint16').max)),
+              elements=st.integers(
+                min_value=1,
+                max_value=np.iinfo('uint16').max)
+              ),
        arrays(np.uint16, (3, 8, 8),
-              elements=st.integers(min_value=1, max_value=np.iinfo('uint16').max)),
-       st.floats(min_value = 0.2, max_value = 1.0))
+              elements=st.integers(
+                min_value=1,
+                max_value=np.iinfo('uint16').max)
+              ),
+       st.floats(min_value=0.2, max_value=1.0))
 def test_calculateRatio(rgb, pan, weight):
     output = pan / ((rgb[0] + rgb[1] + rgb[2] * weight) / (2 + weight))
     assert np.array_equal(output, calculateRatio(rgb, pan, weight))
@@ -29,15 +31,25 @@ def test_calculateRatio(rgb, pan, weight):
 
 # Testing Brovey function from methods
 @given(arrays(np.uint16, (3, 8, 8),
-              elements=st.integers(min_value=1, max_value=np.iinfo('uint16').max)),
+              elements=st.integers(
+                min_value=1,
+                max_value=np.iinfo('uint16').max)
+              ),
        arrays(np.uint16, (3, 8, 8),
-              elements=st.integers(min_value=1, max_value=np.iinfo('uint16').max)),
-       st.floats(min_value = 0.2, max_value = 1.0),
+              elements=st.integers(
+                min_value=1,
+                max_value=np.iinfo('uint16').max)
+              ),
+       st.floats(min_value=0.2, max_value=1.0),
        st.sampled_from(('uint8', 'uint16')))
 def test_Brovey(rgb, pan, weight, pan_dtype):
     brovey_output, brovey_ratio = Brovey(rgb, pan, weight, pan_dtype)
     ratio = pan / ((rgb[0] + rgb[1] + rgb[2] * weight) / (2 + weight))
-    output = np.clip(ratio * rgb, 0, np.iinfo(pan_dtype).max).astype(pan_dtype)
+    output = np.clip(
+                    ratio * rgb,
+                    0,
+                    np.iinfo(pan_dtype).max
+                ).astype(pan_dtype)
     assert np.array_equal(brovey_output, output)
     assert np.array_equal(brovey_ratio, ratio)
 
@@ -55,11 +67,16 @@ def test_fix_window_size(w, h, blocksize):
 
 
 # Testing _check_crs_function from utils
-crs_strategy = st.lists(elements=st.dictionaries(
-        st.sampled_from(['crs']),
-        st.sampled_from(('EPSG:32654', 'EPSG:25832', 'EPSG:3857')),
-                        min_size=1),
-    min_size=2, max_size =2)
+crs_strategy = st.lists(
+                elements=st.dictionaries(
+                    st.sampled_from(['crs']),
+                    st.sampled_from(
+                        ('EPSG:32654', 'EPSG:25832', 'EPSG:3857')
+                    ),
+                    min_size=1),
+                min_size=2, max_size=2)
+
+
 @given(crs_strategy)
 def test_check_crs(crs_list):
         if crs_list[0]['crs'] != crs_list[1]['crs']:
@@ -68,44 +85,51 @@ def test_check_crs(crs_list):
 
 
 # Testing _create_apply_mask function from utils
-# Failing on purpose. Function needs rewriting
-@pytest.mark.xfail
 @given(arrays(np.uint16, (3, 8, 8),
-              elements=st.integers(min_value=1, max_value=np.iinfo('uint16').max)))
+              elements=st.integers(
+                min_value=1,
+                max_value=np.iinfo('uint16').max
+                )
+              )
+       )
 def test_create_apply_mask(rgb):
-    # Create a mask of pixels where any channel is 0 (nodata):
-    color_mask = np.minimum(
-        rgb[0],
-        np.minimum(rgb[1], rgb[2])) * (np.iinfo(np.uint16).max + 1)
-    # Apply the mask:
-    masked_rgb = np.array([
-        np.minimum(band, color_mask) for band in rgb])
-
-    assert np.all(color_mask[color_mask !=0]
-                  <= np.iinfo(np.uint16).max)
+    color_mask = np.all(
+            np.rollaxis(rgb, 0, 3) != 0,
+            axis=2
+        ).astype(np.uint16) * np.iinfo(np.uint16).max
+    masked_rgb = _create_apply_mask(rgb)
+    assert np.all(color_mask[color_mask != 0] <= np.iinfo(np.uint16).max)
     assert np.all(masked_rgb <= rgb)
 
 
 # Testing _simple_mask function from utils
 @given(arrays(np.uint16, (3, 8, 8),
-              elements=st.integers(min_value=1, max_value=np.iinfo('uint16').max)),
-       st.integers(0,0))
+              elements=st.integers(
+                min_value=1,
+                max_value=np.iinfo('uint16').max
+                )
+              ),
+       st.integers(0, 0))
 def test_simple_mask(data, ndv):
     '''Exact nodata masking'''
     nd = np.iinfo(data.dtype).max
-    assert np.array_equal(_simple_mask(data, ndv),
-                          np.invert(np.all(np.dstack(data)
-                                    == ndv, axis=2)).astype(data.dtype)
-                                    * nd)
+    assert np.array_equal(
+            _simple_mask(data, ndv),
+            np.invert(
+                np.all(
+                    np.dstack(data) == ndv, axis=2
+                    )
+                ).astype(data.dtype) * nd)
 
 
 # Testing _pad_window function from utils
 @given(
-    st.tuples(
         st.tuples(
-            st.integers(), st.integers()),
-        st.tuples(
-            st.integers(), st.integers())),
+            st.tuples(
+                st.integers(), st.integers()),
+            st.tuples(
+                st.integers(), st.integers())
+            ),
         st.integers()
     )
 def test_pad_window(wnd, pad):
@@ -115,32 +139,46 @@ def test_pad_window(wnd, pad):
 
 # Testing _rescale function from utils
 @given(arrays(np.uint16, (3, 8, 8),
-              elements=st.integers(min_value=1, max_value=np.iinfo('uint16').max)),
-       st.integers(0,0),
+              elements=st.integers(
+                min_value=1,
+                max_value=np.iinfo('uint16').max
+                )
+              ),
+       st.integers(0, 0),
        st.sampled_from(('uint8', 'uint16')))
 def test_rescale(arr, ndv, dst_dtype):
     if dst_dtype == np.__dict__['uint16']:
-        assert np.array_equal(_rescale(arr, ndv, dst_dtype), np.concatenate(
-                [(arr).astype(dst_dtype),
-                 _simple_mask(arr.astype(dst_dtype),
-                              (ndv, ndv, ndv)
-                             ).reshape(1, arr.shape[1], arr.shape[2])
-                ]
+        assert np.array_equal(
+                _rescale(arr, ndv, dst_dtype),
+                np.concatenate(
+                    [
+                        (arr).astype(dst_dtype),
+                        _simple_mask(
+                            arr.astype(dst_dtype),
+                            (ndv, ndv, ndv)
+                        ).reshape(1, arr.shape[1], arr.shape[2])
+                    ]
+                )
             )
-        )
     else:
-        assert np.array_equal(_rescale(arr, ndv, dst_dtype), np.concatenate(
-                [(arr / 257.0).astype(dst_dtype),
-                 _simple_mask(arr.astype(dst_dtype),
-                              (ndv, ndv, ndv)
-                             ).reshape(1, arr.shape[1], arr.shape[2])
-                ]
+        assert np.array_equal(
+                _rescale(arr, ndv, dst_dtype),
+                np.concatenate(
+                    [
+                        (arr / 257.0).astype(dst_dtype),
+                        _simple_mask(
+                            arr.astype(dst_dtype),
+                            (ndv, ndv, ndv)
+                        ).reshape(1, arr.shape[1], arr.shape[2])
+                    ]
+                )
             )
-        )
 
 
 # Testing make_windows_block function's random element
 wh = st.integers(min_value=2, max_value=3500)
+
+
 @given(
     wh,
     wh,
@@ -166,6 +204,7 @@ def test_make_windows_last_block(w, h, blocksize):
     assert windows[-1][0][1] == h and windows[-1][1][1] == w
     assert windows[-1][0][1] - windows[-1][0][0] <= blocksize \
         and windows[-1][1][1] - windows[-1][1][0] <= blocksize
+
 
 # Testing make_affine function
 @given(
@@ -195,36 +234,3 @@ def test_half_window(window):
     assert np.all((np.array(window) % half_window) <= 1)
     assert window[0][0]/half_window[0][0] == 2
     assert window[-1][-1]/half_window[-1][-1] == 2
-
-
-# Q: Do we test rasterio's reproject function?
-# def Affine():
-#     return st.tuples(
-#             st.floats(min_value=1, max_value = 8),
-#             st.floats(min_value=0.0, max_value=0.0),
-#             st.floats(min_value=0.0),
-#             st.floats(min_value=0, max_value=0),
-#             st.floats(min_value = -8, max_value=0.0),
-#             st.floats(min_value=0.0)
-#             )
-# # Testing _upsample function from utils
-# @given(arrays(np.int16, (3, 8, 8)), arrays(np.int16, (3, 16, 16)),
-#        Affine,
-#        st.sampled_from(('EPSG:32654', 'EPSG:25832', 'EPSG:3857')),
-#        Affine * 2,
-#        st.sampled_from(('EPSG:32654', 'EPSG:25832', 'EPSG:3857'))
-# )
-# def test_upsample(rgb, panshape, src_aff, src_crs, to_aff, to_crs):
-#     up_rgb = np.empty((rgb.shape[0], panshape[0], panshape[1]), dtype=rgb.dtype)
-
-#     reproject(
-#         rgb, up_rgb,
-#         src_transform=src_aff,
-#         src_crs=src_crs,
-#         dst_transform=to_aff,
-#         dst_crs=to_crs,
-#         resampling=Resampling.bilinear)
-#     print up_rgb
-
-#     return up_rgb
-
