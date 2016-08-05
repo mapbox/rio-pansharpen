@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 from setuptools.extension import Extension
 
 # Parse the version from the fiona module.
-with open('rio_toa/__init__.py') as f:
+with open('pansharpen/__init__.py') as f:
     for line in f:
         if line.find("__version__") >= 0:
             version = line.split("=")[1].strip()
