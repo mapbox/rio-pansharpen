@@ -1,6 +1,7 @@
 machine:
-    post:
-        - pyenv global 2.7.10 3.5.0
+    python:
+        version: 2.7.11
+        # version: 3.5.0
 
 dependencies:
     pre:
@@ -19,4 +20,3 @@ test:
         - py.test --cov pansharpen --cov-report term-missing --ignore=venv
     post:
         - codecov
-

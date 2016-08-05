@@ -182,7 +182,7 @@ wh = st.integers(min_value=2, max_value=3500)
 @given(
     wh,
     wh,
-    wh.filter(lambda x: x < wh))
+    wh)
 def test_make_windows_full_block(w, h, blocksize):
     windows = list(_make_windows(w, h, blocksize))
     wind = np.random.randint(len(windows)/2 + 1)
@@ -198,7 +198,7 @@ def test_make_windows_full_block(w, h, blocksize):
 @given(
     wh,
     wh,
-    wh.filter(lambda x: x < wh))
+    wh)
 def test_make_windows_last_block(w, h, blocksize):
     windows = list(_make_windows(w, h, blocksize))
     assert windows[-1][0][1] == h and windows[-1][1][1] == w

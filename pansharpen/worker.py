@@ -103,7 +103,6 @@ def calculate_landsat_pansharpen(src_paths, dst_path, dst_dtype,
         windows = _calc_windows(pan_src, customwindow)
         profile = pan_src.profile
 
-        print windows
         if profile['count'] > 1:
             raise RuntimeError(
                 "Pan band must be 1 band - is {}".format(profile['count']))
