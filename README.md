@@ -1,6 +1,6 @@
 # rio-pansharpen
 [![PyPI](https://img.shields.io/pypi/v/rio-pansharpen.svg)]()
-[![CircleCI](https://circleci.com/gh/mapbox/rio-pansharpen.svg?style=svg)](https://circleci.com/gh/mapbox/rio-pansharpen)
+[![CircleCI](https://circleci.com/gh/mapbox/rio-pansharpen.svg?style=shield&circle)](https://circleci.com/gh/mapbox/rio-pansharpen)
 
 pansharpens Landsat 8 scenes.
 
