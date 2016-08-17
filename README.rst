@@ -95,16 +95,16 @@ pansharpen
 
 ::
 
-    Usage: pansharpen [OPTIONS] [SRC_PATHS]... DST_PATH
+    Usage: rio pansharpen [OPTIONS] [SRC_PATHS]... DST_PATH
 
       Pansharpens a landsat scene. Input is a panchromatic band (B8), plus 3 color
       bands (B4, B3, B2)
 
-         pansharpen B8.tif B4.tif B3.tif B2.tif out.tif
+         rio pansharpen B8.tif B4.tif B3.tif B2.tif out.tif
 
       Or with shell expansion
 
-         pansharpen LC80410332015283LGN00_B{8,4,3,2}.tif out.tif
+         rio pansharpen LC80410332015283LGN00_B{8,4,3,2}.tif out.tif
 
     Options:
       --dst-dtype [uint16|uint8]

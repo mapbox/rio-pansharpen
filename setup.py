@@ -1,7 +1,5 @@
 import os
-import sys
 from setuptools import setup, find_packages
-from setuptools.extension import Extension
 
 # Parse the version from the fiona module.
 with open('pansharpen/__init__.py') as f:
@@ -20,7 +18,7 @@ def read(fname):
 
 
 setup(name='rio-pansharpen',
-      version='0.1.1',
+      version=version,
       description=u"rio-pansharpen",
       long_description=long_description,
       classifiers=[],
@@ -41,7 +39,7 @@ setup(name='rio-pansharpen',
           'test': ['pytest', 'hypothesis', 'pytest-cov', 'codecov'],
       },
       entry_points="""
-      [console_scripts]
+      [rasterio.rio_plugins]
       pansharpen=pansharpen.scripts.pan_cli:cli
       """
       )
