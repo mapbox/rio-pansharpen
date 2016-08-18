@@ -128,14 +128,12 @@ def calculate_landsat_pansharpen(src_paths, dst_path, dst_dtype, ndv,
             raise RuntimeError(
                 "Pan band must be 1 band - is {}".format(profile['count']))
 
-        dst_dtype = np.__dict__[dst_dtype]
-
         profile.update(
             transform=guard_transform(pan_src.transform),
             compress='DEFLATE',
             blockxsize=512,
             blockysize=512,
-            dtype=dst_dtype,
+            dtype=np.__dict__[dst_dtype],
             tiled=True,
             count=4,
             photometric='rgb')

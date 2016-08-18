@@ -46,7 +46,7 @@ def test_pansharp_data():
               'verb': False, 'weight': 0.2,
               'dst_crs': {'init': u'epsg:32654'},
               'r_crs': {'init': u'epsg:32654'},
-              'dst_dtype': np.__dict__['uint16'],
+              'dst_dtype': 'uint16',
               'r_aff': Affine(150.0193548387097, 0.0, 300885.0,
                               0.0, -150.0190114068441, 4107015.0),
               'src_nodata': 0}
@@ -73,7 +73,7 @@ def test_pansharpen_worker_uint16(test_pansharp_data):
 
 def test_pansharpen_worker_uint8(test_pansharp_data):
     open_files, pan_window, _, g_args = test_pansharp_data
-    g_args.update(dst_dtype=np.__dict__['uint8'])
+    g_args.update(dst_dtype='uint8')
     pan_output = _pansharpen_worker(open_files, pan_window, _, g_args)
     assert pan_output.dtype == np.uint8
     assert np.max(pan_output) <= 2**8

@@ -141,12 +141,9 @@ def _rescale(arr, ndv, dst_dtype):
     if dst_dtype == 'uint16':
         scale = float(1)
 
-    elif dst_dtype == 'uint8':
-        # convert to 8bit value range in place
-        scale = float(np.iinfo(np.uint16).max) / float(np.iinfo(np.uint8).max)
-
     else:
-        scale = float(np.iinfo(np.int16).max) / float(np.iinfo(np.int8).max)
+        scale = float(np.iinfo(np.uint16).max) / \
+                float(np.iinfo(np.__dict__[dst_dtype]).max)
 
     return np.concatenate(
                 [

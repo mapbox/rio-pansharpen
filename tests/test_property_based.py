@@ -150,12 +150,26 @@ def test_pad_window(wnd, pad):
                         'int16',
                         'int8')))
 def test_rescale(arr, ndv, dst_dtype):
-    if dst_dtype == 'uint16' or dst_dtype == 'int16':
+    if dst_dtype == 'uint16':
         assert np.array_equal(
                 _rescale(arr, ndv, dst_dtype),
                 np.concatenate(
                     [
                         (arr).astype(dst_dtype),
+                        _simple_mask(
+                            arr.astype(dst_dtype),
+                            (ndv, ndv, ndv)
+                        ).reshape(1, arr.shape[1], arr.shape[2])
+                    ]
+                )
+            )
+
+    elif dst_dtype == 'int16':
+        assert np.array_equal(
+                _rescale(arr, ndv, dst_dtype),
+                np.concatenate(
+                    [
+                        (arr / 2.000030518509476).astype(dst_dtype),
                         _simple_mask(
                             arr.astype(dst_dtype),
                             (ndv, ndv, ndv)
@@ -183,7 +197,7 @@ def test_rescale(arr, ndv, dst_dtype):
                 _rescale(arr, ndv, dst_dtype),
                 np.concatenate(
                     [
-                        (arr / 258.00787401574803).astype(dst_dtype),
+                        (arr / 516.0236220472441).astype(dst_dtype),
                         _simple_mask(
                             arr.astype(dst_dtype),
                             (ndv, ndv, ndv)
