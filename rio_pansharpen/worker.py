@@ -42,7 +42,7 @@ def pansharpen(vis, vis_transform, pan, pan_transform,
                     pan_transform, dst_crs)
 
     # Main Pansharpening Processing
-    if method == Brovey:
+    if method == "Brovey":
         pansharp, _ = Brovey(rgb, pan, weight, pan_dtype)
     # TODO: add other methods
 
@@ -91,7 +91,7 @@ def _pansharpen_worker(open_files, pan_window, _, g_args):
     pansharpened = pansharpen(
                         rgb, rgb_affine, pan, pan_affine, pan_dtype,
                         g_args["r_crs"], g_args["dst_crs"],
-                        g_args["weight"], method=Brovey
+                        g_args["weight"], method="Brovey"
                     )
 
     pan_rescale = _rescale(pansharpened,
