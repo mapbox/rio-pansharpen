@@ -5,7 +5,7 @@ import click
 import numpy as np
 import rasterio
 import riomucho
-from pansharpen.methods import Brovey
+from rio_pansharpen.methods import Brovey
 from rasterio.transform import guard_transform
 
 from . utils import (

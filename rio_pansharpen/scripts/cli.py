@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import click
-from pansharpen.worker import calculate_landsat_pansharpen
+from rio_pansharpen.worker import calculate_landsat_pansharpen
 
 
 @click.command('pansharpen')
@@ -24,7 +24,7 @@ from pansharpen.worker import calculate_landsat_pansharpen
               default=0,
               help="Specify blocksize for custom windows > 150"
               "[default=src_blockswindows]")
-def cli(src_paths, dst_path, dst_dtype,
+def pansharpen(src_paths, dst_path, dst_dtype,
         weight, verbosity, jobs,
         half_window, customwindow):
     """Pansharpens a landsat scene.
@@ -45,7 +45,3 @@ def cli(src_paths, dst_path, dst_dtype,
         src_paths, dst_path, dst_dtype, weight, verbosity,
         jobs, half_window, customwindow
       )
-
-
-if __name__ == '__main__':
-    cli()

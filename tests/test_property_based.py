@@ -4,9 +4,9 @@ from hypothesis import given
 import hypothesis.strategies as st
 from hypothesis.extra.numpy import arrays
 from rasterio.warp import reproject
-from pansharpen.methods import(
+from rio_pansharpen.methods import(
     calculateRatio, Brovey)
-from pansharpen.utils import(
+from rio_pansharpen.utils import(
     _adjust_block_size, _check_crs, _simple_mask,
     _pad_window, _create_apply_mask, _rescale,
     _make_windows, _make_affine, _half_window)

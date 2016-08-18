@@ -1,7 +1,7 @@
 import os
 import click
 from click.testing import CliRunner
-from pansharpen.scripts.pan_cli import cli
+from rio_pansharpen.scripts.cli import pansharpen
 import re
 
 
@@ -10,7 +10,7 @@ def test_exception(tmpdir):
     output = str(tmpdir.join('wrong_customwindow.TIF'))
     runner = CliRunner()
     result = runner.invoke(
-        cli,
+        pansharpen,
         ['tests/fixtures/tiny_20_tiffs/LC81070352015122LGN00/'
          'LC81070352015122LGN00_B8.tif',
          'tests/fixtures/tiny_20_tiffs/LC81070352015122LGN00/'
@@ -31,7 +31,7 @@ def test_exception2(tmpdir):
     output = str(tmpdir.join('wrong_customwindow.TIF'))
     runner = CliRunner()
     result = runner.invoke(
-        cli,
+        pansharpen,
         ['tests/fixtures/tiny_20_tiffs/LC81070352015122LGN00/'
          'LC81070352015122LGN00_B8.tif',
          'tests/fixtures/tiny_20_tiffs/LC81070352015122LGN00/'
@@ -74,7 +74,7 @@ def test_prompt_success2(tmpdir):
     output = str(tmpdir.join('test_src.TIF'))
     runner = CliRunner()
     result = runner.invoke(
-            cli,
+            pansharpen,
             ['tests/fixtures/tiny_20_tiffs/LC81070352015122LGN00/'
              'LC81070352015122LGN00_B8.tif',
              'tests/fixtures/tiny_20_tiffs/LC81070352015122LGN00/'

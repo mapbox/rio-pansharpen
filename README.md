@@ -32,7 +32,7 @@ pip install -e .
 
 ## Python API
 
-### `pansharpen.worker`
+### `rio_pansharpen.worker`
 The `worker` module pansharpens Landsat 8. Visit the [USGS Landsat page](http://landsat.usgs.gov/band_designations_landsat_satellites.php) page for more information on Landsat 8 band designations.
 
 #### 1. `worker.pansharpen`
@@ -47,8 +47,8 @@ and outputs:
 - numpy 3D array with shape == (3, pan_height, pan_width)
 
 ```
->>> from pansharpen import worker
->>> from pansharpen.methods import Brovey
+>>> from rio_pansharpen import worker
+>>> from rio_pansharpen.methods import Brovey
 ...
 >>> pansharpened = worker.pansharpen(vis, vis_transform, pan, pan_transform,
                        pan_dtype, r_crs, dst_crs, weight,
@@ -58,8 +58,8 @@ and outputs:
 
 #### 2.`worker.calculate_landsat_pansharpen`
 ```
->>> from pansharpen import worker
->>> from pansharpen.utils import _calc_windows
+>>> from rio_pansharpen import worker
+>>> from rio_pansharpen.utils import _calc_windows
 >>> import riomucho
 ...
 >>> worker.calculate_landsat_pansharpen(src_paths, dst_path, dst_dtype,

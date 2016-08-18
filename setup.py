@@ -2,7 +2,7 @@ import os
 from setuptools import setup, find_packages
 
 # Parse the version from the fiona module.
-with open('pansharpen/__init__.py') as f:
+with open('rio_pansharpen/__init__.py') as f:
     for line in f:
         if line.find("__version__") >= 0:
             version = line.split("=")[1].strip()
@@ -40,6 +40,6 @@ setup(name='rio-pansharpen',
       },
       entry_points="""
       [rasterio.rio_plugins]
-      pansharpen=pansharpen.scripts.pan_cli:cli
+      pansharpen=rio_pansharpen.scripts.cli:pansharpen
       """
       )

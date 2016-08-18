@@ -1,11 +1,11 @@
 import pytest
-from pansharpen import utils
+from rio_pansharpen import utils
 import numpy as np
-import pansharpen.methods as pansharp_methods
+import rio_pansharpen.methods as pansharp_methods
 import rasterio
 from affine import Affine
-from pansharpen.worker import _pansharpen_worker
-from pansharpen.utils import _calc_windows
+from rio_pansharpen.worker import _pansharpen_worker
+from rio_pansharpen.utils import _calc_windows
 
 
 # Creating random test fixture for advance functions
