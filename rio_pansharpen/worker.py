@@ -16,7 +16,7 @@ from . utils import (
 
 def pansharpen(vis, vis_transform, pan, pan_transform,
                pan_dtype, r_crs, dst_crs, weight,
-               method="Brovey", src_nodata=0):
+               src_nodata, method="Brovey"):
     """Pansharpen a lower-resolution visual band
 
     Parameters
@@ -91,7 +91,7 @@ def _pansharpen_worker(open_files, pan_window, _, g_args):
     pansharpened = pansharpen(
                         rgb, rgb_affine, pan, pan_affine, pan_dtype,
                         g_args["r_crs"], g_args["dst_crs"],
-                        g_args["weight"], method="Brovey"
+                        g_args["weight"], g_args["src_nodata"], method="Brovey"
                     )
 
     pan_rescale = _rescale(pansharpened,
@@ -101,7 +101,7 @@ def _pansharpen_worker(open_files, pan_window, _, g_args):
     return pan_rescale
 
 
-def calculate_landsat_pansharpen(src_paths, dst_path, dst_dtype,
+def calculate_landsat_pansharpen(src_paths, dst_path, dst_dtype, ndv,
                                  weight, verbosity, jobs, half_window,
                                  customwindow):
     """Parameters
@@ -142,11 +142,15 @@ def calculate_landsat_pansharpen(src_paths, dst_path, dst_dtype,
 
     with rasterio.open(src_paths[1]) as r_src:
         r_meta = r_src.meta
+        r_nodata = r_src.nodata
 
     if profile['width'] <= r_meta['width'] or \
        profile['height'] <= r_meta['height']:
         raise RuntimeError(
             "Pan band must be larger than RGB bands")
+
+    if ndv is None:
+        ndv = r_nodata
 
     _check_crs([r_meta, profile])
 
@@ -154,6 +158,7 @@ def calculate_landsat_pansharpen(src_paths, dst_path, dst_dtype,
         "verb": verbosity,
         "half_window": half_window,
         "dst_dtype": dst_dtype,
+        "nodata": ndv,
         "weight": weight,
         "dst_aff": guard_transform(profile['transform']),
         "dst_crs": profile['crs'],
