@@ -2,6 +2,7 @@
 
 import click
 from rio_pansharpen.worker import calculate_landsat_pansharpen
+from rasterio.rio.options import creation_options
 
 
 @click.command('pansharpen')
@@ -24,9 +25,13 @@ from rio_pansharpen.worker import calculate_landsat_pansharpen
               default=0,
               help="Specify blocksize for custom windows > 150"
               "[default=src_blockswindows]")
-def pansharpen(src_paths, dst_path, dst_dtype,
+@click.option('--out-alpha/--no-out-alpha', default=True, is_flag=True,
+              help="Output an alpha band along with RGB")
+@creation_options
+def pansharpen(
+        src_paths, dst_path, dst_dtype,
         weight, verbosity, jobs,
-        half_window, customwindow):
+        half_window, customwindow, out_alpha, creation_options):
     """Pansharpens a landsat scene.
     Input is a panchromatic band, plus 3 color bands
 
@@ -43,5 +48,5 @@ def pansharpen(src_paths, dst_path, dst_dtype,
 
     return calculate_landsat_pansharpen(
         src_paths, dst_path, dst_dtype, weight, verbosity,
-        jobs, half_window, customwindow
+        jobs, half_window, customwindow, out_alpha, creation_options
       )
