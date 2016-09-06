@@ -38,9 +38,9 @@ Or install from source
     pip install -e .
 
 
-**********
+
 Python API
-**********
+==========
 
 pansharpen.worker
 -----------------
@@ -71,8 +71,8 @@ and outputs:
 
 
 
-2.``worker.calculate_landsat_pansharpen``
-----------------------------------------
+2. ``worker.calculate_landsat_pansharpen``
+------------------------------------------
 ::
 
     >>> from pansharpen import worker
@@ -84,9 +84,9 @@ and outputs:
             customwindow)
 
 
-***
+
 CLI
-***
+===
 
 
 pansharpen
@@ -121,9 +121,8 @@ pansharpen
 
 
 
-*********************************************
 Comparison of Different Pansharpening Methods
-*********************************************
+---------------------------------------------
 We've implemented the Weighted Brovey Transform for pansharpening, which is appropriate for data like Landsat where the panchromatic band is relatively similar in resolution to the color bands.
 
 For more information on other pansharpening methods such as IHS, PCA, P+XS, Wavelet, VWP, Wavelet with Canny Edge Detector etc, please read our notes `here <https://github.com/mapbox/pansharpening/blob/master/docs/pansharpening_methods.rst>`_.
