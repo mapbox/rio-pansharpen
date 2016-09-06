@@ -25,8 +25,8 @@ from rio_pansharpen.worker import calculate_landsat_pansharpen
               help="Specify blocksize for custom windows > 150"
               "[default=src_blockswindows]")
 def pansharpen(src_paths, dst_path, dst_dtype,
-        weight, verbosity, jobs,
-        half_window, customwindow):
+               weight, verbosity, jobs,
+               half_window, customwindow):
     """Pansharpens a landsat scene.
     Input is a panchromatic band, plus 3 color bands
 
