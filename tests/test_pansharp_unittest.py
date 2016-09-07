@@ -1,11 +1,11 @@
+from affine import Affine
 import pytest
 from rio_pansharpen import utils
 import numpy as np
 import rio_pansharpen.methods as pansharp_methods
 import rasterio
-from affine import Affine
 from rio_pansharpen.worker import _pansharpen_worker
-from rio_pansharpen.utils import _calc_windows
+from rio_pansharpen.utils import _calc_windows, _half_window
 
 
 # Creating random test fixture for advance functions
@@ -77,6 +77,14 @@ def test_pansharpen_worker_uint8(test_pansharp_data):
     pan_output = _pansharpen_worker(open_files, pan_window, _, g_args)
     assert pan_output.dtype == np.uint8
     assert np.max(pan_output) <= 2**8
+
+
+def test_pansharpen_worker_half_window(test_pansharp_data):
+    open_files, pan_window, _, g_args = test_pansharp_data
+    pan = open_files[0].read(1, window=pan_window).astype(np.float32)
+    g_args.update(half_window=True)
+    pan_output = _pansharpen_worker(open_files, pan_window, _, g_args)
+    assert pan_output.shape == (4, pan.shape[0], pan.shape[1])
 
 
 # Testing reproject function

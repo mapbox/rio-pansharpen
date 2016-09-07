@@ -9,9 +9,8 @@ from rio_pansharpen.methods import Brovey
 from rasterio.transform import guard_transform
 
 from . utils import (
-    _pad_window, _upsample, _simple_mask,
-    _calc_windows, _check_crs, _create_apply_mask,
-    _half_window, _rescale)
+    _pad_window, _upsample, _calc_windows, _check_crs,
+    _create_apply_mask, _half_window, _rescale)
 
 
 def pansharpen(vis, vis_transform, pan, pan_transform,
@@ -70,7 +69,7 @@ def _pansharpen_worker(open_files, pan_window, _, g_args):
 
     # Get the rgb window that covers the pan window
     if g_args.get("half_window"):
-        rgb_window = half_window(pan_window)
+        rgb_window = _half_window(pan_window)
     else:
         padding = 2
         pan_bounds = open_files[0].window_bounds(pan_window)
@@ -89,30 +88,33 @@ def _pansharpen_worker(open_files, pan_window, _, g_args):
         click.echo('pan shape: %s, rgb shape %s' % (pan.shape, rgb.shape))
 
     pansharpened = pansharpen(
-                        rgb, rgb_affine, pan, pan_affine, pan_dtype,
-                        g_args["r_crs"], g_args["dst_crs"],
-                        g_args["weight"], method="Brovey"
-                    )
+        rgb, rgb_affine, pan, pan_affine, pan_dtype,
+        g_args["r_crs"], g_args["dst_crs"],
+        g_args["weight"], method="Brovey")
 
-    pan_rescale = _rescale(pansharpened,
-                           g_args["src_nodata"],
-                           g_args["dst_dtype"])
+    pan_rescale = _rescale(
+        pansharpened, g_args["src_nodata"], g_args["dst_dtype"],
+        out_alpha=g_args.get("out_alpha", True))
 
     return pan_rescale
 
 
 def calculate_landsat_pansharpen(src_paths, dst_path, dst_dtype,
                                  weight, verbosity, jobs, half_window,
-                                 customwindow):
+                                 customwindow, out_alpha, creation_opts):
     """Parameters
     ------------
     src_paths: list of string (pan_path, r_path, g_path, b_path)
     dst_path: string
-    dst_dtype: 'uint16', 'uint8'. [Default] 'uint8'
+    dst_dtype: 'uint16', 'uint8'.
     weight: float
     jobs: integer
-    half_window: True/False. [Default] False
-    customwindow: integer. [Default] 0
+    half_window: boolean
+    customwindow: integer
+    out_alpha: boolean
+        output an alpha band?
+    creation_opts: dict
+        creation options to update the write profile
 
     Returns
     ---------
@@ -130,15 +132,17 @@ def calculate_landsat_pansharpen(src_paths, dst_path, dst_dtype,
 
         dst_dtype = np.__dict__[dst_dtype]
 
-        profile.update(
-            transform=guard_transform(pan_src.transform),
-            compress='DEFLATE',
-            blockxsize=512,
-            blockysize=512,
-            dtype=dst_dtype,
-            tiled=True,
-            count=4,
-            photometric='rgb')
+    profile.update(
+        transform=guard_transform(pan_src.transform),
+        dtype=dst_dtype,
+        count=3,
+        photometric='rgb')
+
+    if out_alpha:
+        profile['count'] = 4
+
+    if creation_opts:
+        profile.update(**creation_opts)
 
     with rasterio.open(src_paths[1]) as r_src:
         r_meta = r_src.meta
@@ -154,6 +158,7 @@ def calculate_landsat_pansharpen(src_paths, dst_path, dst_dtype,
         "verb": verbosity,
         "half_window": half_window,
         "dst_dtype": dst_dtype,
+        "out_alpha": out_alpha,
         "weight": weight,
         "dst_aff": guard_transform(profile['transform']),
         "dst_crs": profile['crs'],
