@@ -135,7 +135,7 @@ def _calc_windows(pan_src, customwindow):
     return windows
 
 
-def _rescale(arr, ndv, dst_dtype):
+def _rescale(arr, ndv, dst_dtype, out_alpha=True):
     """Convert an array from output dtype, scaling up linearly
     """
     if dst_dtype == np.__dict__['uint16']:
@@ -144,12 +144,13 @@ def _rescale(arr, ndv, dst_dtype):
         # convert to 8bit value range in place
         scale = float(np.iinfo(np.uint16).max) / float(np.iinfo(np.uint8).max)
 
-    return np.concatenate(
-                [
-                    (arr / scale).astype(dst_dtype),
-                    _simple_mask(
-                        arr.astype(dst_dtype),
-                        (ndv, ndv, ndv)
-                    ).reshape(1, arr.shape[1], arr.shape[2])
-                ]
-            )
+    res = (arr / scale).astype(dst_dtype)
+
+    if out_alpha:
+        mask = _simple_mask(
+            arr.astype(dst_dtype),
+            (ndv, ndv, ndv)).reshape(
+                1, arr.shape[1], arr.shape[2])
+        return np.concatenate([res, mask])
+    else:
+        return res
