@@ -31,7 +31,7 @@ We highly recommend installing in a virtualenv. Once activated,
 Or install from source
 ::
 
-    git checkout https://github.com/mapbox/rio-pansharpen.git
+    git clone https://github.com/mapbox/rio-pansharpen.git
     cd rio-pansharpen
     pip install -U pip
     pip install -r requirements.txt
