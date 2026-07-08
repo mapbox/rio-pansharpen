@@ -62,8 +62,8 @@ and outputs:
 
 ::
 
-    >>> from pansharpen import worker
-    >>> from pansharpen.methods import Brovey
+    >>> from rio_pansharpen import worker
+    >>> from rio_pansharpen.methods import Brovey
     ...
     >>> pansharpened = worker.pansharpen(vis, vis_transform, pan, pan_transform,
                            pan_dtype, r_crs, dst_crs, weight,
@@ -75,8 +75,8 @@ and outputs:
 ------------------------------------------
 ::
 
-    >>> from pansharpen import worker
-    >>> from pansharpen.utils import _calc_windows
+    >>> from rio_pansharpen import worker
+    >>> from rio_pansharpen.utils import _calc_windows
     >>> import riomucho
     ...
     >>> worker.calculate_landsat_pansharpen(src_paths, dst_path, dst_dtype,
