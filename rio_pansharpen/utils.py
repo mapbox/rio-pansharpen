@@ -109,9 +109,10 @@ def _simple_mask(data, ndv):
     return alpha
 
 
-def _pad_window(wnd, pad):
+def _pad_window(window, pad):
     """Add padding to windows
     """
+    wnd = window.toranges()
     return (
         (wnd[0][0] - pad, wnd[0][1] + pad),
         (wnd[1][0] - pad, wnd[1][1] + pad))
